@@ -20,6 +20,10 @@ const Box = styled.div`
   height: ${props => (props.height ? `${props.height * 10}px` : `800px`)};
   width: ${props => (props.width ? `${props.width * 10}px` : `1000px`)};
   border: 2px solid ${eigengrau};
+  margin: 4px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
 `;
 
 const Book = styled.div`
