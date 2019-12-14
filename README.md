@@ -1,3 +1,13 @@
+## Alyssa's Backstory!
+
+Alyssa is a trans woman who escaped to Chicago to escape persecution and pursue her love for library science, when a chance encounter traps her into the maelstrom at the dark heart of academia. Will Alyssa and her rag-tag band of renegade librarians save America from fiendish administrators and devilishly deviant secretaries?
+
+Come along with [author's name] on a wild ride through some wild stacks with a cast you'll want to go out and meet yourself like they existed, lol, it's fiction, I don't really know how to finish this, haha.
+
+I kinda just didn't want to leave it up to the imagination that I was thinking of the stereotype Miriam the Librarian, and I was going to just genderswap, and Eli might have been the name, since Elissa ... but I know an Eli, and anyway any time I name something myself, I like ... I dunno, it's better if someone else names it, somehow. I always make some stupid pun out of it or something, and then any time I open the project I roll my eyes, and there's the focus gone right there. Noah named this one.
+
+// (>^^)>
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
