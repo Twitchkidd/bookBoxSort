@@ -17,8 +17,8 @@ const AppWrapper = styled.div`
 `;
 
 const Box = styled.div`
-  height: ${props => (props.height ? `${props.height * 10}px` : `800px`)};
-  width: ${props => (props.width ? `${props.width * 10}px` : `1000px`)};
+  height: ${props => `${Math.round(props.height * 10)}px`};
+  width: ${props => `${Math.round(props.width * 10)}px`};
   border: 2px solid ${eigengrau};
   margin: 4px;
   display: flex;
@@ -59,7 +59,7 @@ export default class App extends Component {
       box.Width !== "TODO" ? true : false
     );
     const boxesWithDimensionInCm = boxesWithDimensions.map(box => {
-      const inchesToCm = inches => Math.round(inches * 2.54);
+      const inchesToCm = inches => inches * 2.54;
       return {
         ...box,
         Height: inchesToCm(box.Height),
@@ -99,7 +99,7 @@ export default class App extends Component {
     // After a book is placed ... actually, there's really no reason not to sort rows by depth on each put.
     // let indexOfNextBox = this.selectNextBox({ book, sortedBoxes }));
     // });
-    console.log(boxesWithBooks);
+    // console.log(boxesWithBooks);
     this.setState({ boxesWithBooks });
   }
   render() {
