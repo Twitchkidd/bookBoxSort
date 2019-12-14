@@ -81,13 +81,11 @@ export default class App extends Component {
         cmp(a.Depth, b.Depth)
       );
     });
-    let boxesWithBooks = [];
     // sortedBooks.forEach(book => {
     // if (!boxesWithBooks) {
     // let indexOfNextBox = this.selectNextBox({ book, sortedBoxes });
     // boxesWithBooks.push({ ...box, rows: [[{ ...book }]] });
     // boxesWithBooks.push({ ...sortedBoxes[0], rows: [[{ ...book }]] });
-    boxesWithBooks.push({ ...sortedBoxes[0], rows: [[{ ...sortedBooks[0] }]] });
     // }
     // I need to try and find that space for the book
     // and then if not, either add a new row or a new box, or throw an error
@@ -99,6 +97,23 @@ export default class App extends Component {
     // After a book is placed ... actually, there's really no reason not to sort rows by depth on each put.
     // let indexOfNextBox = this.selectNextBox({ book, sortedBoxes }));
     // });
+    let boxesWithBooks = [];
+    boxesWithBooks.push({ ...sortedBoxes[0], rows: [[{ ...sortedBooks[0] }]] });
+    sortedBooks.forEach(book => {
+      // >> First thing is to start from the first row of the first box,
+      // >> Then check if there's enough height in the box for the book,
+      // >> Then check if there's enough width in the row for the book,
+      // >> Then check whether there's enough depth in the box,
+      // >>   including area taken up by any other books in any other rows in the box.
+      // >> If all those checks pass, push the book onto the row we're on
+      // >> I guess we can just have everything else fail silently for now,
+      // >>   maybe just write in height and width, because the area thing is a whole thing.
+      boxesWithBooks.forEach(box => {
+        box.rows.forEach(row => {
+          console.log(row);
+        });
+      });
+    });
     // console.log(boxesWithBooks);
     this.setState({ boxesWithBooks });
   }
