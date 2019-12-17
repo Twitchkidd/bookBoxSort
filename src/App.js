@@ -123,17 +123,14 @@ export default class App extends Component {
             ]
           ]
         });
+        console.log(workingAccumulator);
         return workingAccumulator;
       }
-      console.log("workingAccumulator");
-      console.log(workingAccumulator);
-      console.log("currentBook");
-      console.log(currentBook);
       let sorted = false;
       let currentBox = 0;
       let currentRow = 0;
       let currentPosition = 0;
-      let workingRow = workingAccumulator[0].rows[0];
+      let workingRow = workingAccumulator[0].rows[0].map(book => book);
       while (sorted === false) {
         if (
           currentBook.Width <=
@@ -196,7 +193,10 @@ export default class App extends Component {
             currentPosition = 0;
             if (!workingAccumulator[currentBox]) {
               workingAccumulator.push({
-                ...sortedBoxes[currentBox],
+                BoxNumber: sortedBoxes[currentBox].BoxNumber,
+                Height: sortedBoxes[currentBox].Height,
+                Width: sortedBoxes[currentBox].Width,
+                Depth: sortedBoxes[currentBox].Depth,
                 rows: [[]]
               });
             }
@@ -223,7 +223,10 @@ export default class App extends Component {
             currentPosition = 0;
             if (!workingAccumulator[currentBox]) {
               workingAccumulator.push({
-                ...sortedBoxes[currentBox],
+                BoxNumber: sortedBoxes[currentBox].BoxNumber,
+                Height: sortedBoxes[currentBox].Height,
+                Width: sortedBoxes[currentBox].Width,
+                Depth: sortedBoxes[currentBox].Depth,
                 rows: [[]]
               });
             }
