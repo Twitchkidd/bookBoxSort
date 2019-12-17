@@ -92,6 +92,10 @@ export default class App extends Component {
       // probably like not how to set myself up for functional
       // code, mais c'est la vie. ¯\_(ツ)_/¯
       let workingAccumulator = accumulator;
+      // Okay, so here, we're saying if it's falsy, which is
+      // passed in as null, add the first box, row, and book,
+      // so let me test this, because I'm not sure the return
+      // is doing what I think it's doing ...
       if (!workingAccumulator) {
         workingAccumulator = [];
         workingAccumulator.push({
@@ -100,6 +104,10 @@ export default class App extends Component {
         });
         return workingAccumulator;
       }
+      console.log("workingAccumulator");
+      console.log(workingAccumulator);
+      console.log("currentBook");
+      console.log(currentBook);
       let sorted = false;
       let currentBox = 0;
       let currentRow = 0;
