@@ -17,6 +17,7 @@ const AppWrapper = styled.div`
   );
   padding: 20px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
 `;
@@ -84,34 +85,128 @@ export default class App extends Component {
         cmp(a.Width, b.Width) ||
         cmp(a.Depth, b.Depth)
     );
-
-    let boxesWithBooks = [];
-    boxesWithBooks.push({
-      ...sortedBoxes[0],
-      rows: [[{ ...sortedBooks[0] }]]
-    });
-    sortedBooks.forEach(book => {
-      boxesWithBooks.forEach((box, boxIndex) => {
-        box.rows.forEach((row, rowIndex) => {
-          if (
-            book.Width <=
-            Math.round(box.Width * 10) -
-              boxesWithBooks[0].rows[0].reduce(booksWidthAccumulator, 0)
-          ) {
-            if (book.Depth <= box.Width) {
-              boxesWithBooks[boxIndex].rows[rowIndex].push({ ...book });
-            } else {
-              const nextBoxIndex = this.selectNextBox({
-                book,
-                sortedBoxes: sortedBoxes.slice(boxIndex + 1)
-              });
-              boxesWithBooks.push({ ...sortedBoxes[nextBoxIndex] });
-            }
-          }
+    const boxBoxReducer = (accumulator, currentBook) => {
+      // Okay, so the idea was to go through each book and
+      // add it into this boxesWithBooks object, which we're
+      // immediately making a copy of to mutate, which is
+      // probably like not how to set myself up for functional
+      // code, mais c'est la vie. ¯\_(ツ)_/¯
+      let workingAccumulator = accumulator;
+      if (!workingAccumulator) {
+        workingAccumulator = [];
+        workingAccumulator.push({
+          ...sortedBoxes[0],
+          rows: [[{ ...currentBook }]]
         });
-      });
-    });
-    // console.log(boxesWithBooks);
+        return workingAccumulator;
+      }
+      let sorted = false;
+      let currentBox = 0;
+      let currentRow = 0;
+      let currentPosition = 0;
+      let workingRow = workingAccumulator[0].rows[0];
+      while (sorted === false) {
+        if (
+          currentBook.Width <=
+          Math.round(workingAccumulator[currentBox].Width * 10) -
+            workingAccumulator[currentBox].rows[currentRow].reduce(
+              booksWidthAccumulator,
+              0
+            )
+        ) {
+          workingRow.forEach(book => {
+            if (currentBook.Depth < book.Depth) {
+              currentPosition++;
+            }
+          });
+          workingRow.splice(currentPosition, 0, currentBook);
+          let blockage = false;
+          workingRow.forEach(book => {
+            if (workingAccumulator[currentBox].rows[currentRow + 1]) {
+              let rowUpToBook = workingRow.slice(0, currentPosition);
+              let bookStartX = rowUpToBook.reduce(booksWidthAccumulator, 0);
+              let bookEndX = bookStartX + book.Width;
+              workingAccumulator[currentBox].rows[currentRow + 1].forEach(
+                (otherBook, otherBookIndex) => {
+                  let otherRowUpToOtherBook = workingAccumulator[
+                    currentBox
+                  ].rows[currentRow + 1].slice(0, otherBookIndex);
+                  let otherBookStartX =
+                    workingAccumulator[currentBox].Depth -
+                    otherRowUpToOtherBook.reduce(booksWidthAccumulator, 0);
+                  let otherBookEndX =
+                    workingAccumulator[currentBox].Depth -
+                    (otherRowUpToOtherBook.reduce(booksWidthAccumulator, 0) +
+                      otherBook.Width);
+                  if (
+                    otherBookStartX > bookStartX ||
+                    otherBookStartX < bookEndX ||
+                    otherBookEndX > bookStartX ||
+                    otherBookEndX < bookEndX
+                  ) {
+                    if (
+                      book.Height + otherBook.Height >
+                      workingAccumulator[currentBox].Width
+                    ) {
+                      blockage = true;
+                    }
+                  }
+                }
+              );
+            } else if (
+              currentBook.Depth > workingAccumulator[currentBox].Width
+            ) {
+              blockage = true;
+            }
+          });
+          if (!blockage) {
+            workingAccumulator[currentBox].rows[currentRow] = workingRow;
+          } else {
+            currentBox++;
+            currentRow = 0;
+            currentPosition = 0;
+            if (!workingAccumulator[currentBox]) {
+              workingAccumulator.push({
+                ...sortedBoxes[currentBox],
+                rows: [[]]
+              });
+            }
+            workingRow = workingAccumulator[currentBox].rows[0];
+            break;
+          }
+        } else {
+          if (
+            currentRow === 0 &&
+            workingAccumulator[currentBox].rows.length === 2
+          ) {
+            currentRow++;
+            currentPosition = 0;
+            workingRow = workingAccumulator[currentBox].rows[currentRow];
+            break;
+          } else if (currentRow === 0) {
+            workingAccumulator[currentBox].rows.push([]);
+            currentRow++;
+            currentPosition = 0;
+            break;
+          } else {
+            currentBox++;
+            currentRow = 0;
+            currentPosition = 0;
+            if (!workingAccumulator[currentBox]) {
+              workingAccumulator.push({
+                ...sortedBoxes[currentBox],
+                rows: [[]]
+              });
+            }
+            workingRow = workingAccumulator[currentBox].rows[0];
+            break;
+          }
+        }
+        sorted = true;
+      }
+      return workingAccumulator;
+    };
+    const boxesWithBooks = sortedBooks.reduce(boxBoxReducer, null);
     this.setState({ boxesWithBooks });
   }
   render() {
@@ -143,54 +238,3 @@ export default class App extends Component {
     );
   }
 }
-
-// 25.4 millimeters per inch
-/*
-      box = {
-        BoxNumber: 5,
-        height: 6,
-        widht: 7,
-        depth: 8,
-        rows: 2,
-        books: [
-          {
-            id: 007,
-            height: 2,
-            width: 3,
-            depth: 1,
-            row: 1,
-            place: 14
-          },
-          {
-            ...
-          }
-        ]
-      }
-    */
-// sortedBooks.forEach(book => {
-// if (!boxesWithBooks) {
-// let indexOfNextBox = this.selectNextBox({ book, sortedBoxes });
-// boxesWithBooks.push({ ...box, rows: [[{ ...book }]] });
-// boxesWithBooks.push({ ...sortedBoxes[0], rows: [[{ ...book }]] });
-// }
-// I need to try and find that space for the book
-// and then if not, either add a new row or a new box, or throw an error
-//
-// So, go through each row, calculate the width remaining, compare to the book's width, and if that
-// fits, double check the height and depth, and if it fits, push it. If it doesn't fit, try the next
-// row. If you run out of rows, try from the first box to make one, and on through, and if that doesn't
-// work, then pick a new box.
-// After a book is placed ... actually, there's really no reason not to sort rows by depth on each put.
-// let indexOfNextBox = this.selectNextBox({ book, sortedBoxes }));
-// });
-
-// >> First thing is to start from the first row of the first box,
-// >> Then check if there's enough height in the box for the book,
-// >> Then check if there's enough width in the row for the book,
-// >> Then check whether there's enough depth in the box,
-// >>   including area taken up by any other books in any other rows in the box.
-// >> If all those checks pass, push the book onto the row we're on
-// >> I guess we can just have everything else fail silently for now,
-// >>   maybe just write in height and width, because the area thing is a whole thing.
-
-/* minus each book's in the row's width is greater than the width of the book, go on to the depth check */
