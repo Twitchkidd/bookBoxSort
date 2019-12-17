@@ -99,8 +99,11 @@ export default class App extends Component {
       if (!workingAccumulator) {
         workingAccumulator = [];
         workingAccumulator.push({
-          ...sortedBoxes[0],
-          rows: [[{ ...currentBook }]]
+          BoxNumber: sortedBoxes[0].BoxNumber,
+          Height: sortedBoxes[0].Height,
+          Width: sortedBoxes[0].Width,
+          Depth: sortedBoxes[0].Depth,
+          rows: [[{ currentBook }]]
         });
         return workingAccumulator;
       }
