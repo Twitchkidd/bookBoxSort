@@ -5,6 +5,8 @@ import Global from "./Global";
 
 const eigengrau = "#16161d";
 
+// Okay, this is working, get thine self together, walk Dawa, and merge these two after getting to Starbucks, or you're going to fall asleep. Go! Fly, you fool! lol
+
 const AppWrapper = styled.div`
   height: 100vh;
   min-width: 100vw;
