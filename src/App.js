@@ -103,7 +103,25 @@ export default class App extends Component {
           Height: sortedBoxes[0].Height,
           Width: sortedBoxes[0].Width,
           Depth: sortedBoxes[0].Depth,
-          rows: [[{ currentBook }]]
+          rows: [
+            [
+              {
+                By: currentBook.By,
+                Title: currentBook.Title,
+                FictionOrNon: currentBook.FictionOrNon,
+                Subjects: currentBook.Subjects,
+                Height: currentBook.Height,
+                Width: currentBook.Width,
+                Depth: currentBook.Depth,
+                Shelf: currentBook.Shelf,
+                From: currentBook.From,
+                Scans: currentBook.Scans,
+                BackedUp: currentBook.BackedUp,
+                CroppedP2: currentBook.CroppedP2,
+                Notes: currentBook.Notes
+              }
+            ]
+          ]
         });
         return workingAccumulator;
       }
