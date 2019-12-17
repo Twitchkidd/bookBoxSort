@@ -7,9 +7,10 @@ import { boxes, catalog } from "./data";
 const eigengrau = "#16161d";
 
 const AppWrapper = styled.div`
-  height: 100vh;
-  min-width: 100vw;
+  height: 100%;
+  min-height: 100vh;
   width: max-content;
+  min-width: 100vw;
   background: linear-gradient(
     to right,
     ${htmlColors.random()},
@@ -28,7 +29,14 @@ const Box = styled.div`
   border: 2px solid ${eigengrau};
   margin: 4px;
   display: flex;
-  align-items: flex-end;
+`;
+
+const Row = styled.div`
+  height: 100%;
+  display: flex;
+  flex-direction: ${props => (props.which === "first" ? `row` : `row-reverse`)};
+  align-items: ${props =>
+    props.which === "first" ? `flex-end` : `flex-start`};
 `;
 
 const Book = styled.div`
@@ -62,6 +70,8 @@ export default class App extends Component {
         cmp(a.Width, b.Width) ||
         cmp(a.Depth, b.Depth)
     );
+    console.log(sortedBooks);
+
     const boxesWithDimensions = boxes.filter(box =>
       box.Width !== "TODO" ? true : false
     );
@@ -85,17 +95,12 @@ export default class App extends Component {
         cmp(a.Width, b.Width) ||
         cmp(a.Depth, b.Depth)
     );
+    let currentBox = 0;
+    let currentRow = 0;
+    let currentPosition = 0;
     const boxBoxReducer = (accumulator, currentBook) => {
-      // Okay, so the idea was to go through each book and
-      // add it into this boxesWithBooks object, which we're
-      // immediately making a copy of to mutate, which is
-      // probably like not how to set myself up for functional
-      // code, mais c'est la vie. ¯\_(ツ)_/¯
       let workingAccumulator = accumulator;
-      // Okay, so here, we're saying if it's falsy, which is
-      // passed in as null, add the first box, row, and book,
-      // so let me test this, because I'm not sure the return
-      // is doing what I think it's doing ...
+      // INIT WITH FIRST BOOK AND BOX, I KNOW IT WORKS, I'M CHEATING, IT'S OKAY
       if (!workingAccumulator) {
         workingAccumulator = [];
         workingAccumulator.push({
@@ -123,18 +128,18 @@ export default class App extends Component {
             ]
           ]
         });
-        console.log(workingAccumulator);
         return workingAccumulator;
       }
       let sorted = false;
-      let currentBox = 0;
-      let currentRow = 0;
-      let currentPosition = 0;
-      let workingRow = workingAccumulator[0].rows[0].map(book => book);
+      let workingRow = workingAccumulator[currentBox].rows[currentRow].map(
+        book => book
+      );
       while (sorted === false) {
+        // IF THERE'S WIDTH IN THE ROW
+        // This ... has some funny math behaviour ...
         if (
           currentBook.Width <=
-          Math.round(workingAccumulator[currentBox].Width * 10) -
+          workingAccumulator[currentBox].Width -
             workingAccumulator[currentBox].rows[currentRow].reduce(
               booksWidthAccumulator,
               0
@@ -142,12 +147,13 @@ export default class App extends Component {
         ) {
           workingRow.forEach(book => {
             if (currentBook.Depth < book.Depth) {
-              currentPosition++;
+              ++currentPosition;
             }
           });
           workingRow.splice(currentPosition, 0, currentBook);
           let blockage = false;
           workingRow.forEach(book => {
+            // IF THERE'S ANOTHER ROW CHECK FOR BLOCKAGE
             if (workingAccumulator[currentBox].rows[currentRow + 1]) {
               let rowUpToBook = workingRow.slice(0, currentPosition);
               let bookStartX = rowUpToBook.reduce(booksWidthAccumulator, 0);
@@ -180,6 +186,7 @@ export default class App extends Component {
                 }
               );
             } else if (
+              // ALSO CHECK IF THE BOX IS DEEP ENOUGH
               currentBook.Depth > workingAccumulator[currentBox].Width
             ) {
               blockage = true;
@@ -199,8 +206,8 @@ export default class App extends Component {
                 Depth: sortedBoxes[currentBox].Depth,
                 rows: [[]]
               });
+              break;
             }
-            workingRow = workingAccumulator[currentBox].rows[0];
             break;
           }
         } else {
@@ -234,6 +241,7 @@ export default class App extends Component {
             break;
           }
         }
+        workingAccumulator[currentBox].rows[currentRow] = workingRow;
         sorted = true;
       }
       return workingAccumulator;
@@ -243,6 +251,7 @@ export default class App extends Component {
   }
   render() {
     const { boxesWithBooks } = this.state;
+    console.log(boxesWithBooks);
     return (
       <AppWrapper>
         <Global />
@@ -250,17 +259,39 @@ export default class App extends Component {
           ? boxesWithBooks.map((box, i) => {
               return (
                 <Box height={box.Width} width={box.Depth} key={i}>
-                  {box.rows.map(row => {
-                    return row.map((book, j) => {
+                  {box.rows.map((row, j) => {
+                    if (j === 0) {
                       return (
-                        <Book
-                          height={book.Depth}
-                          width={book.Width}
-                          color={htmlColors.random()}
-                          key={j}
-                        />
+                        <Row which='first' key={j}>
+                          {row.map((book, k) => {
+                            return (
+                              <Book
+                                height={book.Depth}
+                                width={book.Width}
+                                color={htmlColors.random()}
+                                key={k}
+                              />
+                            );
+                          })}
+                        </Row>
                       );
-                    });
+                    }
+                    if (j === 1) {
+                      return (
+                        <Row which='second' key={j}>
+                          {row.map((book, k) => {
+                            return (
+                              <Book
+                                height={book.Depth}
+                                width={book.Width}
+                                color={htmlColors.random()}
+                                key={k}
+                              />
+                            );
+                          })}
+                        </Row>
+                      );
+                    }
                   })}
                 </Box>
               );
