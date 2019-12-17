@@ -32,8 +32,9 @@ const Box = styled.div`
 `;
 
 const Row = styled.div`
-  position: absolute;
-  top: 0;
+  position: ${props => (props.width ? `absolute` : `static`)};
+  float: ${props => (props.width ? `left` : null)};
+  top: ${props => (props.width ? null : 0)};
   left: ${props => (props.width ? `${props.width * 10}px` : 0)};
   height: 100%;
   display: flex;
