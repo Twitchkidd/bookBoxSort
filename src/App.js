@@ -28,10 +28,13 @@ const Box = styled.div`
   width: ${props => `${Math.round(props.width * 10)}px`};
   border: 2px solid ${eigengrau};
   margin: 4px;
-  display: flex;
+  position: relative;
 `;
 
 const Row = styled.div`
+  position: absolute;
+  top: 0;
+  left: ${props => (props.width ? `${props.width * 10}px` : 0)};
   height: 100%;
   display: flex;
   flex-direction: ${props => (props.which === "first" ? `row` : `row-reverse`)};
@@ -70,8 +73,6 @@ export default class App extends Component {
         cmp(a.Width, b.Width) ||
         cmp(a.Depth, b.Depth)
     );
-    console.log(sortedBooks);
-
     const boxesWithDimensions = boxes.filter(box =>
       box.Width !== "TODO" ? true : false
     );
@@ -97,7 +98,6 @@ export default class App extends Component {
     );
     let currentBox = 0;
     let currentRow = 0;
-    let currentPosition = 0;
     const boxBoxReducer = (accumulator, currentBook) => {
       let workingAccumulator = accumulator;
       // INIT WITH FIRST BOOK AND BOX, I KNOW IT WORKS, I'M CHEATING, IT'S OKAY
@@ -131,11 +131,11 @@ export default class App extends Component {
         return workingAccumulator;
       }
       let sorted = false;
-      let workingRow = workingAccumulator[currentBox].rows[currentRow].map(
-        book => book
-      );
       while (sorted === false) {
         // IF THERE'S WIDTH IN THE ROW
+        let workingRow = workingAccumulator[currentBox].rows[currentRow].map(
+          book => book
+        );
         // This ... has some funny math behaviour ...
         if (
           currentBook.Width <=
@@ -145,24 +145,21 @@ export default class App extends Component {
               0
             )
         ) {
-          workingRow.forEach(book => {
-            if (currentBook.Depth < book.Depth) {
-              ++currentPosition;
-            }
-          });
-          workingRow.splice(currentPosition, 0, currentBook);
+          workingRow.push(currentBook);
+          workingRow.sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth));
           let blockage = false;
-          workingRow.forEach(book => {
+          workingRow.forEach((book, bookIndex) => {
             // IF THERE'S ANOTHER ROW CHECK FOR BLOCKAGE
-            if (workingAccumulator[currentBox].rows[currentRow + 1]) {
-              let rowUpToBook = workingRow.slice(0, currentPosition);
+            if (workingAccumulator[currentBox].rows[1]) {
+              debugger;
+              let rowUpToBook = workingRow.slice(0, bookIndex);
               let bookStartX = rowUpToBook.reduce(booksWidthAccumulator, 0);
               let bookEndX = bookStartX + book.Width;
-              workingAccumulator[currentBox].rows[currentRow + 1].forEach(
+              workingAccumulator[currentBox].rows[1].forEach(
                 (otherBook, otherBookIndex) => {
                   let otherRowUpToOtherBook = workingAccumulator[
                     currentBox
-                  ].rows[currentRow + 1].slice(0, otherBookIndex);
+                  ].rows[1].slice(0, otherBookIndex);
                   let otherBookStartX =
                     workingAccumulator[currentBox].Depth -
                     otherRowUpToOtherBook.reduce(booksWidthAccumulator, 0);
@@ -197,7 +194,6 @@ export default class App extends Component {
           } else {
             currentBox++;
             currentRow = 0;
-            currentPosition = 0;
             if (!workingAccumulator[currentBox]) {
               workingAccumulator.push({
                 BoxNumber: sortedBoxes[currentBox].BoxNumber,
@@ -216,18 +212,15 @@ export default class App extends Component {
             workingAccumulator[currentBox].rows.length === 2
           ) {
             currentRow++;
-            currentPosition = 0;
             workingRow = workingAccumulator[currentBox].rows[currentRow];
             break;
           } else if (currentRow === 0) {
             workingAccumulator[currentBox].rows.push([]);
             currentRow++;
-            currentPosition = 0;
             break;
           } else {
             currentBox++;
             currentRow = 0;
-            currentPosition = 0;
             if (!workingAccumulator[currentBox]) {
               workingAccumulator.push({
                 BoxNumber: sortedBoxes[currentBox].BoxNumber,
@@ -247,7 +240,12 @@ export default class App extends Component {
       return workingAccumulator;
     };
     const boxesWithBooks = sortedBooks.reduce(boxBoxReducer, null);
-    this.setState({ boxesWithBooks });
+    const fullBoxesWithBooks = boxesWithBooks.filter(box => {
+      if (box.rows[0][0]) {
+        return box;
+      }
+    });
+    this.setState({ boxesWithBooks: fullBoxesWithBooks });
   }
   render() {
     const { boxesWithBooks } = this.state;
@@ -278,7 +276,17 @@ export default class App extends Component {
                     }
                     if (j === 1) {
                       return (
-                        <Row which='second' key={j}>
+                        <Row
+                          which='second'
+                          width={
+                            box.Width -
+                            row.reduce(
+                              (accumulator, currentBook) =>
+                                accumulator + currentBook.Width,
+                              0
+                            )
+                          }
+                          key={j}>
                           {row.map((book, k) => {
                             return (
                               <Book
