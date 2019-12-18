@@ -31,16 +31,20 @@ const Box = styled.div`
   position: relative;
 `;
 
-const Row = styled.div`
-  position: ${props => (props.width ? `absolute` : `static`)};
-  float: ${props => (props.width ? `left` : null)};
-  top: ${props => (props.width ? null : 0)};
-  left: ${props => (props.width ? `${props.width * 10}px` : 0)};
+const RowWrapper = styled.div`
   height: 100%;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+`;
+
+const Row = styled.div`
+  height: 100%;
+	width: 100%
   display: flex;
-  flex-direction: ${props => (props.which === "first" ? `row` : `row-reverse`)};
-  align-items: ${props =>
-    props.which === "first" ? `flex-end` : `flex-start`};
+  flex-direction: ${props => (props.left ? `row-reverse` : `row`)};
+  align-items: ${props => (props.left ? `flex-start` : `flex-end`)};
 `;
 
 const Book = styled.div`
@@ -152,7 +156,6 @@ export default class App extends Component {
           workingRow.forEach((book, bookIndex) => {
             // IF THERE'S ANOTHER ROW CHECK FOR BLOCKAGE
             if (workingAccumulator[currentBox].rows[1]) {
-              debugger;
               let rowUpToBook = workingRow.slice(0, bookIndex);
               let bookStartX = rowUpToBook.reduce(booksWidthAccumulator, 0);
               let bookEndX = bookStartX + book.Width;
@@ -252,53 +255,64 @@ export default class App extends Component {
     const { boxesWithBooks } = this.state;
     console.log(boxesWithBooks);
     return (
-      <AppWrapper>
+      <AppWrapper className={"AppWrapper"}>
         <Global />
         {boxesWithBooks
           ? boxesWithBooks.map((box, i) => {
               return (
-                <Box height={box.Width} width={box.Depth} key={i}>
+                <Box
+                  height={box.Width}
+                  width={box.Depth}
+                  key={i}
+                  className={"Box"}>
                   {box.rows.map((row, j) => {
                     if (j === 0) {
                       return (
-                        <Row which='first' key={j}>
-                          {row.map((book, k) => {
-                            return (
-                              <Book
-                                height={book.Depth}
-                                width={book.Width}
-                                color={htmlColors.random()}
-                                key={k}
-                              />
-                            );
-                          })}
-                        </Row>
+                        <RowWrapper className={"RowWrapper"}>
+                          <Row key={j} className={"Row"}>
+                            {row.map((book, k) => {
+                              return (
+                                <Book
+                                  height={book.Depth}
+                                  width={book.Width}
+                                  color={htmlColors.random()}
+                                  key={k}
+                                  className={"Book"}
+                                />
+                              );
+                            })}
+                          </Row>
+                        </RowWrapper>
                       );
                     }
                     if (j === 1) {
                       return (
-                        <Row
-                          which='second'
-                          width={
-                            box.Width -
-                            row.reduce(
-                              (accumulator, currentBook) =>
-                                accumulator + currentBook.Width,
-                              0
-                            )
-                          }
-                          key={j}>
-                          {row.map((book, k) => {
-                            return (
-                              <Book
-                                height={book.Depth}
-                                width={book.Width}
-                                color={htmlColors.random()}
-                                key={k}
-                              />
-                            );
-                          })}
-                        </Row>
+                        <RowWrapper className={"RowWrapper"}>
+                          <Row
+                            left={true}
+                            rowWidth={
+                              box.Width -
+                              row.reduce(
+                                (accumulator, currentBook) =>
+                                  accumulator + currentBook.Width,
+                                0
+                              )
+                            }
+                            key={j}
+                            className={"Row"}>
+                            {row.map((book, k) => {
+                              return (
+                                <Book
+                                  height={book.Depth}
+                                  width={book.Width}
+                                  color={htmlColors.random()}
+                                  key={k}
+                                  className={"Book"}
+                                />
+                              );
+                            })}
+                          </Row>
+                        </RowWrapper>
                       );
                     }
                   })}
