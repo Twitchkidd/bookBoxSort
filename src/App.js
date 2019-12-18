@@ -68,6 +68,7 @@ export default class App extends Component {
     return indexOfNextBox;
   };
   componentDidMount() {
+    // * (6) Funk and Wagnalls, use more functions, please!
     const cmp = (a, b) => (a < b) - (a > b);
     const inchesToCm = inches => inches * 2.54;
     const booksWidthAccumulator = (accumulator, currentBook) =>
@@ -105,7 +106,7 @@ export default class App extends Component {
     let currentRow = 0;
     const boxBoxReducer = (accumulator, currentBook) => {
       let workingAccumulator = accumulator;
-      // INIT WITH FIRST BOOK AND BOX, I KNOW IT WORKS, I'M CHEATING, IT'S OKAY
+      // ? (7) ( ... ) INIT WITH FIRST BOOK AND BOX, I KNOW IT WORKS, I'M CHEATING, IT'S OKAY
       if (!workingAccumulator) {
         workingAccumulator = [];
         workingAccumulator.push({
@@ -137,11 +138,12 @@ export default class App extends Component {
       }
       let sorted = false;
       while (sorted === false) {
-        // IF THERE'S WIDTH IN THE ROW
+        // ? (3) (Please don't yell your comments.) IF THERE'S WIDTH IN THE ROW
         let workingRow = workingAccumulator[currentBox].rows[currentRow].map(
           book => book
         );
         // This ... has some funny math behaviour ...
+        // ! (2) This could also be fundamentally fucking things up, lol
         if (
           currentBook.Width <=
           workingAccumulator[currentBox].Width -
@@ -152,9 +154,10 @@ export default class App extends Component {
         ) {
           workingRow.push(currentBook);
           workingRow.sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth));
+          // ! (1) This is where I think we're having issues, like at least.
           let blockage = false;
           workingRow.forEach((book, bookIndex) => {
-            // IF THERE'S ANOTHER ROW CHECK FOR BLOCKAGE
+            // ? (4) ( ... ) IF THERE'S ANOTHER ROW CHECK FOR BLOCKAGE
             if (workingAccumulator[currentBox].rows[1]) {
               let rowUpToBook = workingRow.slice(0, bookIndex);
               let bookStartX = rowUpToBook.reduce(booksWidthAccumulator, 0);
@@ -187,7 +190,6 @@ export default class App extends Component {
                 }
               );
             } else if (
-              // ALSO CHECK IF THE BOX IS DEEP ENOUGH
               currentBook.Depth > workingAccumulator[currentBox].Width
             ) {
               blockage = true;
@@ -211,6 +213,7 @@ export default class App extends Component {
             break;
           }
         } else {
+          // * (8) Lol what?
           if (
             currentRow === 0 &&
             workingAccumulator[currentBox].rows.length === 2
@@ -268,8 +271,8 @@ export default class App extends Component {
                   {box.rows.map((row, j) => {
                     if (j === 0) {
                       return (
-                        <RowWrapper className={"RowWrapper"}>
-                          <Row key={j} className={"Row"}>
+                        <RowWrapper key={j} className={"RowWrapper"}>
+                          <Row className={"Row"}>
                             {row.map((book, k) => {
                               return (
                                 <Book
@@ -287,7 +290,7 @@ export default class App extends Component {
                     }
                     if (j === 1) {
                       return (
-                        <RowWrapper className={"RowWrapper"}>
+                        <RowWrapper key={j} className={"RowWrapper"}>
                           <Row
                             left={true}
                             rowWidth={
@@ -298,7 +301,6 @@ export default class App extends Component {
                                 0
                               )
                             }
-                            key={j}
                             className={"Row"}>
                             {row.map((book, k) => {
                               return (
