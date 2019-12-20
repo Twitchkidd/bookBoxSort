@@ -52,7 +52,6 @@ const Book = styled.div.attrs(props => ({
 }))`
   height: ${props => `${props.height * 10}px`};
   width: ${props => `${props.width * 10}px`};
-  background: ${props => props.color};
   border: 1px solid ${eigengrau};
 `;
 
