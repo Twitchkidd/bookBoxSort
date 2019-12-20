@@ -41,7 +41,7 @@ const RowWrapper = styled.div`
 
 const Row = styled.div`
   height: 100%;
-	width: 100%
+  width: 100%;
   display: flex;
   flex-direction: ${props => (props.left ? `row-reverse` : `row`)};
   align-items: ${props => (props.left ? `flex-start` : `flex-end`)};
@@ -58,27 +58,20 @@ export default class App extends Component {
   state = {
     boxesWithBooks: null
   };
-  selectNextBox = ({ book, sortedBoxes }) => {
-    let indexOfNextBox = null;
-    for (let i = 0; indexOfNextBox === null; i++) {
-      if (book.Height <= sortedBoxes[i].Height) {
-        indexOfNextBox = i;
-      }
-    }
-    return indexOfNextBox;
-  };
   componentDidMount() {
-    // * (6) Funk and Wagnalls, use more functions, please!
     const cmp = (a, b) => (a < b) - (a > b);
-    const inchesToCm = inches => inches * 2.54;
-    const booksWidthAccumulator = (accumulator, currentBook) =>
-      accumulator + currentBook.Width;
+    const revCmp = (a, b) => (a > b) - (a < b);
+    const immutableSplice = (arr, start, deleteCount, ...items) =>
+      arr
+        ? [...arr.slice(0, start), ...items, ...arr.slice(start + deleteCount)]
+        : null;
     const sortedBooks = [...catalog].sort(
       (a, b) =>
         cmp(a.Height, b.Height) ||
         cmp(a.Width, b.Width) ||
         cmp(a.Depth, b.Depth)
     );
+    const inchesToCm = inches => inches * 2.54;
     const boxesWithDimensions = boxes.filter(box =>
       box.Width !== "TODO" ? true : false
     );
@@ -102,225 +95,248 @@ export default class App extends Component {
         cmp(a.Width, b.Width) ||
         cmp(a.Depth, b.Depth)
     );
+    const bookBookReducer = (accumulator, currentBook) =>
+      accumulator + currentBook.Width;
     let currentBox = 0;
     let currentRow = 0;
     const boxBoxReducer = (accumulator, currentBook) => {
-      let workingAccumulator = accumulator;
-      // ? (7) ( ... ) INIT WITH FIRST BOOK AND BOX, I KNOW IT WORKS, I'M CHEATING, IT'S OKAY
-      if (!workingAccumulator) {
-        workingAccumulator = [];
-        workingAccumulator.push({
-          BoxNumber: sortedBoxes[0].BoxNumber,
-          Height: sortedBoxes[0].Height,
-          Width: sortedBoxes[0].Width,
-          Depth: sortedBoxes[0].Depth,
-          rows: [
-            [
-              {
-                By: currentBook.By,
-                Title: currentBook.Title,
-                FictionOrNon: currentBook.FictionOrNon,
-                Subjects: currentBook.Subjects,
-                Height: currentBook.Height,
-                Width: currentBook.Width,
-                Depth: currentBook.Depth,
-                Shelf: currentBook.Shelf,
-                From: currentBook.From,
-                Scans: currentBook.Scans,
-                BackedUp: currentBook.BackedUp,
-                CroppedP2: currentBook.CroppedP2,
-                Notes: currentBook.Notes
-              }
-            ]
-          ]
+      console.log("accumulator");
+      console.log(accumulator);
+      console.log("currentBook");
+      console.log(currentBook);
+      const currentBoxNumbers = accumulator
+        ? accumulator.map(boxWithBooks => boxWithBooks.BoxNumber)
+        : [];
+      const setOfBoxesForNextBox = currentBoxNumbers
+        ? sortedBoxes.filter(
+            sortedBox => !currentBoxNumbers.includes(sortedBox.BoxNumber)
+          )
+        : null;
+      const setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst = setOfBoxesForNextBox
+        .filter(box => box.Height > currentBook.Height)
+        .filter(box => box.Width > currentBook.Depth)
+        .sort((a, b) => revCmp(a.Height, b.Height));
+      const setNextBox = () => {
+        accumulator.push({
+          ...setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst[0],
+          rows: [[]]
         });
-        return workingAccumulator;
-      }
-      let sorted = false;
-      while (sorted === false) {
-        // ? (3) (Please don't yell your comments.) IF THERE'S WIDTH IN THE ROW
-        let workingRow = workingAccumulator[currentBox].rows[currentRow].map(
-          book => book
+        currentRow = 0;
+        if (accumulator[0].rows[0][0]) {
+          currentBox++;
+        }
+      };
+      if (!accumulator[0]) setNextBox();
+      const workingRow = () =>
+        accumulator[currentBox]
+          ? immutableSplice(accumulator[currentBox].rows[currentRow], 0, 0, {
+              ...currentBook
+            }).map((bookA, bookB) => cmp(bookA.Depth, bookB.Depth))
+          : null;
+      const indexOfBook = book =>
+        workingRow().indexOf(workingBook => workingBook.Title === book.Title);
+      const indexOfOtherBook = (otherBook, otherRow) =>
+        otherRow.indexOf(workingOtherBook => workingOtherBook.Title);
+      const indexOfAffectedBook = affectedBook =>
+        workingRow().indexOf(
+          workingAffectedBook =>
+            workingAffectedBook.Title === affectedBook.Title
         );
-        // This ... has some funny math behaviour ...
-        // ! (2) This could also be fundamentally fucking things up, lol
-        if (
-          currentBook.Width <=
-          workingAccumulator[currentBox].Width -
-            workingAccumulator[currentBox].rows[currentRow].reduce(
-              booksWidthAccumulator,
-              0
-            )
-        ) {
-          workingRow.push(currentBook);
-          workingRow.sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth));
-          // ! (1) This is where I think we're having issues, like at least.
-          let blockage = false;
-          workingRow.forEach((book, bookIndex) => {
-            // ? (4) ( ... ) IF THERE'S ANOTHER ROW CHECK FOR BLOCKAGE
-            if (workingAccumulator[currentBox].rows[1]) {
-              let rowUpToBook = workingRow.slice(0, bookIndex);
-              let bookStartX = rowUpToBook.reduce(booksWidthAccumulator, 0);
-              let bookEndX = bookStartX + book.Width;
-              workingAccumulator[currentBox].rows[1].forEach(
-                (otherBook, otherBookIndex) => {
-                  let otherRowUpToOtherBook = workingAccumulator[
-                    currentBox
-                  ].rows[1].slice(0, otherBookIndex);
-                  let otherBookStartX =
-                    workingAccumulator[currentBox].Depth -
-                    otherRowUpToOtherBook.reduce(booksWidthAccumulator, 0);
-                  let otherBookEndX =
-                    workingAccumulator[currentBox].Depth -
-                    (otherRowUpToOtherBook.reduce(booksWidthAccumulator, 0) +
-                      otherBook.Width);
-                  if (
-                    otherBookStartX > bookStartX ||
-                    otherBookStartX < bookEndX ||
-                    otherBookEndX > bookStartX ||
-                    otherBookEndX < bookEndX
-                  ) {
-                    if (
-                      book.Height + otherBook.Height >
-                      workingAccumulator[currentBox].Width
-                    ) {
-                      blockage = true;
-                    }
-                  }
+      const affectedBooks = workingRow()
+        ? workingRow().filter((book, i) => i >= indexOfBook(currentBook))
+        : null;
+      const checkHeight = () =>
+        accumulator[currentBox]
+          ? currentBook.Height <= accumulator[currentBox].Height
+            ? true
+            : false
+          : currentBook.Height <=
+            setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst[0]
+              .Height
+          ? true
+          : false;
+      const checkWidth = () =>
+        accumulator[currentBox]
+          ? (workingRow() &&
+              accumulator[currentBox].Depth >=
+                workingRow().reduce(bookBookReducer, 0)) ||
+            currentBook.Width < accumulator[currentBox].Depth
+            ? true
+            : false
+          : true;
+      const obxs = (otherBook, otherRow) =>
+        currentRow === 0
+          ? accumulator[currentBox].Depth -
+            otherRow
+              .filter((book, i) => i < indexOfOtherBook(otherBook, otherRow))
+              .reduce(bookBookReducer, 0)
+          : otherRow
+              .filter((book, i) => i < indexOfOtherBook(otherBook, otherRow))
+              .reduce(bookBookReducer, 0);
+      const obxe = (otherBook, otherRow) =>
+        currentRow === 0
+          ? accumulator[currentBox].Depth -
+            otherRow
+              .filter((book, i) => i <= indexOfOtherBook(otherBook, otherRow))
+              .reduce(bookBookReducer, 0)
+          : otherRow
+              .filter((book, i) => i <= indexOfOtherBook(otherBook, otherRow))
+              .reduce(bookBookReducer, 0);
+      const abxs = affectedBook =>
+        currentRow === 1
+          ? accumulator[currentBox].Depth -
+            workingRow()
+              .filter((book, i) => i < indexOfAffectedBook(affectedBook))
+              .reduce(bookBookReducer, 0)
+          : workingRow()
+              .filter((book, i) => i < indexOfAffectedBook(affectedBook))
+              .reduce(bookBookReducer, 0);
+      const abxe = affectedBook =>
+        currentRow === 1
+          ? accumulator[currentBox].Depth -
+            workingRow()
+              .filter((book, i) => i <= indexOfAffectedBook(affectedBook))
+              .reduce(bookBookReducer, 0)
+          : workingRow()
+              .filter((book, i) => i <= indexOfAffectedBook(affectedBook))
+              .reduce(bookBookReducer, 0);
+      const otherRow = accumulator[currentBox]
+        ? accumulator[currentBox].rows[1 - currentRow]
+        : null;
+      const overlappingBooks = affectedBooks
+        ? affectedBooks.map(affectedBook =>
+            otherRow
+              ? otherRow.map(otherBook =>
+                  (obxe(otherBook, otherRow) <= abxs(affectedBook) &&
+                    obxe(otherBook, otherRow) >= abxe(affectedBook)) ||
+                  (obxs(otherBook, otherRow) <= abxs(affectedBook) &&
+                    obxs(otherBook, otherRow) >= abxe(affectedBook)) ||
+                  (obxs(otherBook, otherRow) <= abxe(affectedBook) &&
+                    obxe(otherBook, otherRow) >= abxs(affectedBook))
+                    ? [otherBook, affectedBook]
+                    : null
+                )
+              : null
+          )
+        : null;
+      const conflicts = overlappingBooks[0]
+        ? overlappingBooks.filter(
+            otherBookAffectedBookArray =>
+              otherBookAffectedBookArray[0].Depth +
+                otherBookAffectedBookArray[1].Depth >
+              accumulator[currentBox].Width
+          )
+        : null;
+      const checkDepth = () =>
+        accumulator[currentBox]
+          ? currentBook.Depth < accumulator[currentBox].Width && !conflicts
+            ? true
+            : false
+          : true;
+      let sorted = false;
+      while (!sorted) {
+        if (checkHeight()) {
+          if (checkWidth()) {
+            if (checkDepth()) {
+              sorted = true;
+            } else {
+              if (currentRow === 0 && accumulator[currentBox].rows[1]) {
+                currentRow++;
+              } else {
+                currentRow = 0;
+                if (accumulator[currentBox + 1]) {
+                  currentBox++;
+                } else {
+                  sorted = true;
+                  setNextBox();
                 }
-              );
-            } else if (
-              currentBook.Depth > workingAccumulator[currentBox].Width
-            ) {
-              blockage = true;
+              }
             }
-          });
-          if (!blockage) {
-            workingAccumulator[currentBox].rows[currentRow] = workingRow;
           } else {
-            currentBox++;
-            currentRow = 0;
-            if (!workingAccumulator[currentBox]) {
-              workingAccumulator.push({
-                BoxNumber: sortedBoxes[currentBox].BoxNumber,
-                Height: sortedBoxes[currentBox].Height,
-                Width: sortedBoxes[currentBox].Width,
-                Depth: sortedBoxes[currentBox].Depth,
-                rows: [[]]
-              });
-              break;
+            if (currentRow === 0 && accumulator[currentBox].rows[1]) {
+              currentRow++;
+            } else {
+              currentRow = 0;
+              if (accumulator[currentBox + 1]) {
+                currentBox++;
+              } else {
+                sorted = true;
+                setNextBox();
+              }
             }
-            break;
           }
         } else {
-          // * (8) Lol what?
-          if (
-            currentRow === 0 &&
-            workingAccumulator[currentBox].rows.length === 2
-          ) {
-            currentRow++;
-            workingRow = workingAccumulator[currentBox].rows[currentRow];
-            break;
-          } else if (currentRow === 0) {
-            workingAccumulator[currentBox].rows.push([]);
-            currentRow++;
-            break;
-          } else {
+          if (accumulator[currentBox + 1]) {
             currentBox++;
-            currentRow = 0;
-            if (!workingAccumulator[currentBox]) {
-              workingAccumulator.push({
-                BoxNumber: sortedBoxes[currentBox].BoxNumber,
-                Height: sortedBoxes[currentBox].Height,
-                Width: sortedBoxes[currentBox].Width,
-                Depth: sortedBoxes[currentBox].Depth,
-                rows: [[]]
-              });
-            }
-            workingRow = workingAccumulator[currentBox].rows[0];
-            break;
+          } else {
+            setNextBox();
           }
         }
-        workingAccumulator[currentBox].rows[currentRow] = workingRow;
-        sorted = true;
       }
-      return workingAccumulator;
+      let nextAccumulator = [...accumulator];
+      if (nextAccumulator === undefined) {
+        nextAccumulator = [];
+      }
+      nextAccumulator[currentBox].rows[currentRow] = immutableSplice(
+        nextAccumulator[currentBox].rows[currentRow],
+        0,
+        0,
+        currentBook
+      ).sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth));
+      return nextAccumulator;
     };
-    const boxesWithBooks = sortedBooks.reduce(boxBoxReducer, null);
-    const fullBoxesWithBooks = boxesWithBooks.filter(box => {
-      if (box.rows[0][0]) {
-        return box;
-      }
-    });
-    this.setState({ boxesWithBooks: fullBoxesWithBooks });
+    const boxesWithBooks = sortedBooks.reduce(boxBoxReducer, []);
+    this.setState({ boxesWithBooks });
   }
   render() {
     const { boxesWithBooks } = this.state;
-    console.log(boxesWithBooks);
     return (
       <AppWrapper className={"AppWrapper"}>
         <Global />
         {boxesWithBooks
-          ? boxesWithBooks.map((box, i) => {
-              return (
-                <Box
-                  height={box.Width}
-                  width={box.Depth}
-                  key={i}
-                  className={"Box"}>
-                  {box.rows.map((row, j) => {
-                    if (j === 0) {
-                      return (
-                        <RowWrapper key={j} className={"RowWrapper"}>
-                          <Row className={"Row"}>
-                            {row.map((book, k) => {
-                              return (
-                                <Book
-                                  height={book.Depth}
-                                  width={book.Width}
-                                  color={htmlColors.random()}
-                                  key={k}
-                                  className={"Book"}
-                                />
-                              );
-                            })}
-                          </Row>
-                        </RowWrapper>
-                      );
-                    }
-                    if (j === 1) {
-                      return (
-                        <RowWrapper key={j} className={"RowWrapper"}>
-                          <Row
-                            left={true}
-                            rowWidth={
-                              box.Width -
-                              row.reduce(
-                                (accumulator, currentBook) =>
-                                  accumulator + currentBook.Width,
-                                0
-                              )
-                            }
-                            className={"Row"}>
-                            {row.map((book, k) => {
-                              return (
-                                <Book
-                                  height={book.Depth}
-                                  width={book.Width}
-                                  color={htmlColors.random()}
-                                  key={k}
-                                  className={"Book"}
-                                />
-                              );
-                            })}
-                          </Row>
-                        </RowWrapper>
-                      );
-                    }
-                  })}
-                </Box>
-              );
-            })
+          ? boxesWithBooks.map((box, i) => (
+              <Box
+                height={box.Width}
+                width={box.Depth}
+                key={i}
+                className={"Box"}>
+                {box.rows.map((row, j) =>
+                  j ? (
+                    <RowWrapper key={j} className={"RowWrapper"}>
+                      <Row left={true} className={"Row"}>
+                        {row.map((book, k) => {
+                          return (
+                            <Book
+                              height={book.Depth}
+                              width={book.Width}
+                              color={htmlColors.random()}
+                              key={k}
+                              className={"Book"}
+                            />
+                          );
+                        })}
+                      </Row>
+                    </RowWrapper>
+                  ) : (
+                    <RowWrapper key={j} className={"RowWrapper"}>
+                      <Row className={"Row"}>
+                        {row.map((book, k) => {
+                          return (
+                            <Book
+                              height={book.Depth}
+                              width={book.Width}
+                              color={htmlColors.random()}
+                              key={k}
+                              className={"Book"}
+                            />
+                          );
+                        })}
+                      </Row>
+                    </RowWrapper>
+                  )
+                )}
+              </Box>
+            ))
           : null}
       </AppWrapper>
     );
