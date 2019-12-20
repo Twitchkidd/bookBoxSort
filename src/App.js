@@ -101,68 +101,58 @@ export default class App extends Component {
     const bookBoxReducer = (accumulator, currentBook) => {
       console.log("accumulator");
       console.log(accumulator);
-      console.log("currentBook");
       console.log(currentBook);
       let nextAccumulator = [...accumulator];
-      console.log("nextAccumulator at the top");
-      console.log(nextAccumulator);
+      let sorted = false;
       let currentBox = 0;
       let currentRow = 0;
-      let sorted = false;
       while (!sorted) {
-        console.log("nextAccumulator at the top of the while loop");
-        console.log(nextAccumulator);
         const currentBoxNumbers = nextAccumulator
-          ? nextAccumulator.map(boxWithBooks => boxWithBooks.BoxNumber)
+          ? nextAccumulator.map(boxWithBooks => boxWithBooks[0].BoxNumber)
           : [];
-        console.log("currentBoxNumbers");
-        console.log(currentBoxNumbers);
         const setOfBoxesForNextBox = currentBoxNumbers
           ? sortedBoxes.filter(
               sortedBox => !currentBoxNumbers.includes(sortedBox.BoxNumber)
             )
           : null;
-        console.log("setOfBoxesForNextBox");
-        console.log(setOfBoxesForNextBox);
-        const setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst = setOfBoxesForNextBox
+        const setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst = [
+          ...setOfBoxesForNextBox
+        ]
           .filter(box => box.Height > currentBook.Height)
           .filter(box => box.Width > currentBook.Depth)
           .sort((a, b) => revCmp(a.Height, b.Height));
-        console.log(
-          "setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst"
-        );
-        console.log(
-          setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst
-        );
         const setNextBox = function() {
-          debugger;
-          nextAccumulator = immutableSplice(nextAccumulator, 0, 0, {
-            ...setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst[0],
-            rows: [[]]
-          });
+          nextAccumulator.push([
+            {
+              ...setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst[0],
+              rows: [[currentBook], []]
+            }
+          ]);
         };
-        console.log(
-          "nextAccumulator above if !nextAccumulator[0] setNextBox();"
-        );
-        console.log(nextAccumulator);
-        if (!nextAccumulator[0]) setNextBox();
-        console.log(
-          "nextAccumulator below if !nextAccumulator[0] setNextBox();"
-        );
-        console.log(nextAccumulator);
-        const workingRow = immutableSplice(
-          nextAccumulator[currentBox].rows[currentRow],
-          0,
-          0,
-          {
-            ...currentBook
-          }
-        ).map((bookA, bookB) => cmp(bookA.Depth, bookB.Depth));
-        console.log("workingRow");
-        console.log(workingRow);
-        // ! This is coming out null!
+        if (!nextAccumulator[0]) {
+          setNextBox();
+          sorted = true;
+          break;
+        }
+        const workingRow = [...nextAccumulator][currentBox][0].rows[currentRow]
+          .concat([currentBook])
+          .sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth));
+        const checkHeight = () =>
+          nextAccumulator[currentBox]
+            ? currentBook.Height <= nextAccumulator[currentBox][0].Height
+              ? true
+              : false
+            : false;
+        const checkWidth = () =>
+          nextAccumulator[currentBox]
+            ? nextAccumulator[currentBox][0].Depth >=
+              workingRow.reduce(bookBookReducer, 0)
+              ? true
+              : false
+            : false;
         const indexOfBook = book =>
           workingRow.indexOf(workingBook => workingBook.Title === book.Title);
+        const otherRow = nextAccumulator[currentBox][0].rows[1 - currentRow];
         const indexOfOtherBook = (otherBook, otherRow) =>
           otherRow.indexOf(workingOtherBook => workingOtherBook.Title);
         const indexOfAffectedBook = affectedBook =>
@@ -170,29 +160,12 @@ export default class App extends Component {
             workingAffectedBook =>
               workingAffectedBook.Title === affectedBook.Title
           );
-        const affectedBooks = workingRow
-          ? workingRow.filter((book, i) => i >= indexOfBook(currentBook))
-          : null;
-        console.log("affectedBooks");
-        console.log(affectedBooks);
-        const checkHeight = () =>
-          nextAccumulator[currentBox]
-            ? currentBook.Height <= nextAccumulator[currentBox].Height
-              ? true
-              : false
-            : false;
-        const checkWidth = () =>
-          nextAccumulator[currentBox]
-            ? (workingRow &&
-                nextAccumulator[currentBox].Depth >=
-                  workingRow.reduce(bookBookReducer, 0)) ||
-              currentBook.Width < nextAccumulator[currentBox].Depth
-              ? true
-              : false
-            : false;
+        const affectedBooks = workingRow.filter(
+          (book, i) => i >= indexOfBook(currentBook)
+        );
         const obxs = (otherBook, otherRow) =>
           currentRow === 0
-            ? nextAccumulator[currentBox].Depth -
+            ? nextAccumulator[currentBox][0].Depth -
               otherRow
                 .filter((book, i) => i < indexOfOtherBook(otherBook, otherRow))
                 .reduce(bookBookReducer, 0)
@@ -201,7 +174,7 @@ export default class App extends Component {
                 .reduce(bookBookReducer, 0);
         const obxe = (otherBook, otherRow) =>
           currentRow === 0
-            ? nextAccumulator[currentBox].Depth -
+            ? nextAccumulator[currentBox][0].Depth -
               otherRow
                 .filter((book, i) => i <= indexOfOtherBook(otherBook, otherRow))
                 .reduce(bookBookReducer, 0)
@@ -210,7 +183,7 @@ export default class App extends Component {
                 .reduce(bookBookReducer, 0);
         const abxs = affectedBook =>
           currentRow === 1
-            ? nextAccumulator[currentBox].Depth -
+            ? nextAccumulator[currentBox][0].Depth -
               workingRow
                 .filter((book, i) => i < indexOfAffectedBook(affectedBook))
                 .reduce(bookBookReducer, 0)
@@ -219,123 +192,103 @@ export default class App extends Component {
                 .reduce(bookBookReducer, 0);
         const abxe = affectedBook =>
           currentRow === 1
-            ? nextAccumulator[currentBox].Depth -
+            ? nextAccumulator[currentBox][0].Depth -
               workingRow
                 .filter((book, i) => i <= indexOfAffectedBook(affectedBook))
                 .reduce(bookBookReducer, 0)
             : workingRow
                 .filter((book, i) => i <= indexOfAffectedBook(affectedBook))
                 .reduce(bookBookReducer, 0);
-        const otherRow = nextAccumulator[currentBox]
-          ? nextAccumulator[currentBox].rows[1 - currentRow]
-          : null;
+        console.log("affectedBooks");
+        console.log(affectedBooks);
         console.log("otherRow");
         console.log(otherRow);
-        const overlappingBooks = affectedBooks
-          ? affectedBooks.map(affectedBook =>
-              otherRow
-                ? otherRow.map(otherBook =>
-                    (obxe(otherBook, otherRow) <= abxs(affectedBook) &&
-                      obxe(otherBook, otherRow) >= abxe(affectedBook)) ||
-                    (obxs(otherBook, otherRow) <= abxs(affectedBook) &&
-                      obxs(otherBook, otherRow) >= abxe(affectedBook)) ||
-                    (obxs(otherBook, otherRow) <= abxe(affectedBook) &&
-                      obxe(otherBook, otherRow) >= abxs(affectedBook))
-                      ? [otherBook, affectedBook]
-                      : null
-                  )
-                : null
-            )
-          : false;
-        console.log("overlappingBooks");
-        console.log(overlappingBooks);
-        const conflicts = overlappingBooks[0]
-          ? overlappingBooks.filter(
-              otherBookAffectedBookArray =>
-                otherBookAffectedBookArray[0].Depth +
-                  otherBookAffectedBookArray[1].Depth >
-                nextAccumulator[currentBox].Width
-            )
-          : null;
+        let overlappingBooks;
+        let workingOtherOverlappingBooks = [];
+        if (typeof otherRow != "undefined") {
+          console.log(otherRow);
+          overlappingBooks = otherRow.map(otherBook =>
+            affectedBooks.filter(affectedBook => {
+              if (
+                (obxe(otherBook, otherRow) <= abxs(affectedBook) &&
+                  obxe(otherBook, otherRow) >= abxe(affectedBook)) ||
+                (obxs(otherBook, otherRow) <= abxs(affectedBook) &&
+                  obxs(otherBook, otherRow) >= abxe(affectedBook)) ||
+                (obxs(otherBook, otherRow) <= abxe(affectedBook) &&
+                  obxe(otherBook, otherRow) >= abxs(affectedBook))
+              ) {
+                workingOtherOverlappingBooks.push([otherBook, affectedBook]);
+                return true;
+              }
+            })
+          );
+        }
+        let conflicts;
+        if (typeof workingOtherOverlappingBooks != "undefined") {
+          console.log("workingOtherOverlappingBooks");
+          console.log(workingOtherOverlappingBooks);
+          conflicts = workingOtherOverlappingBooks.filter(
+            otherBookAffectedBookArray =>
+              otherBookAffectedBookArray[0].Depth +
+                otherBookAffectedBookArray[1].Depth >
+              nextAccumulator[currentBox][0].Width
+          );
+        }
         console.log("conflicts");
         console.log(conflicts);
         const checkDepth = () =>
-          nextAccumulator[currentBox]
-            ? currentBook.Depth < nextAccumulator[currentBox].Width &&
-              !conflicts
-              ? true
-              : false
-            : null;
+          currentBook.Depth < nextAccumulator[currentBox][0].Width &&
+          !conflicts;
         if (checkHeight()) {
+          console.log("passed Height");
           if (checkWidth()) {
+            console.log("passed Width");
             if (checkDepth()) {
-              console.log("workingRow after checkDepth passes");
-              console.log(workingRow);
-              console.log("nextAccumulator");
-              console.log(nextAccumulator);
+              console.log("passed Depth");
+              nextAccumulator[currentBox][0].rows[currentRow] = workingRow;
               sorted = true;
+              break;
             } else {
-              if (currentRow === 0 && nextAccumulator[currentBox].rows[1]) {
-                currentRow++;
+              console.log("failed Depth");
+              if (currentRow === 0 && nextAccumulator[currentBox][0].rows[1]) {
+                ++currentRow;
               } else {
                 currentRow = 0;
                 if (nextAccumulator[currentBox + 1]) {
-                  currentBox++;
+                  ++currentBox;
                 } else {
                   setNextBox();
-                  console.log(
-                    "workingRow after failing Depth and there's no more boxes in nextAccumulator"
-                  );
-                  console.log(workingRow);
-                  console.log("nextAccumulator");
-                  console.log(nextAccumulator);
                   sorted = true;
+                  break;
                 }
               }
             }
           } else {
-            if (currentRow === 0 && nextAccumulator[currentBox].rows[1]) {
-              currentRow++;
+            console.log("failed Width");
+            if (currentRow === 0 && nextAccumulator[currentBox][0].rows[1]) {
+              ++currentRow;
             } else {
               currentRow = 0;
               if (nextAccumulator[currentBox + 1]) {
-                currentBox++;
+                ++currentBox;
               } else {
                 setNextBox();
-                console.log(
-                  "workingRow after failing Width and there's no more boxes in nextAccumulator"
-                );
-                console.log(workingRow);
-                console.log("nextAccumulator");
-                console.log(nextAccumulator);
                 sorted = true;
+                break;
               }
             }
           }
         } else {
           if (nextAccumulator[currentBox + 1]) {
-            currentBox++;
+            ++currentBox;
           } else {
             setNextBox();
-            console.log(
-              "workingRow after failing Width and there's no more boxes in nextAccumulator"
-            );
-            console.log(workingRow);
-            console.log("nextAccumulator");
-            console.log(nextAccumulator);
             sorted = true;
+            break;
           }
         }
       }
-      console.log("we're sorted, right?");
-      console.log(sorted);
-      nextAccumulator[currentBox].rows[currentRow] = immutableSplice(
-        nextAccumulator[currentBox].rows[currentRow],
-        0,
-        0,
-        currentBook
-      ).sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth));
-      console.log("nextAccumulator at the bottom");
+      console.log("nextAccumulator at the end");
       console.log(nextAccumulator);
       return nextAccumulator;
     };
@@ -350,11 +303,11 @@ export default class App extends Component {
         {boxesWithBooks
           ? boxesWithBooks.map((box, i) => (
               <Box
-                height={box.Width}
-                width={box.Depth}
+                height={box[0].Width}
+                width={box[0].Depth}
                 key={i}
                 className={"Box"}>
-                {box.rows.map((row, j) =>
+                {box[0].rows.map((row, j) =>
                   j ? (
                     <RowWrapper key={j} className={"RowWrapper"}>
                       <Row left={true} className={"Row"}>
