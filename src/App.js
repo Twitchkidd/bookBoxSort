@@ -47,7 +47,9 @@ const Row = styled.div`
   align-items: ${props => (props.left ? `flex-start` : `flex-end`)};
 `;
 
-const Book = styled.div`
+const Book = styled.div.attrs(props => ({
+  style: { background: props.color }
+}))`
   height: ${props => `${props.height * 10}px`};
   width: ${props => `${props.width * 10}px`};
   background: ${props => props.color};
@@ -97,25 +99,30 @@ export default class App extends Component {
     );
     const bookBookReducer = (accumulator, currentBook) =>
       accumulator + currentBook.Width;
-    let currentBox = 0;
-    let currentRow = 0;
-    const boxBoxReducer = (accumulator, currentBook) => {
+    const bookBoxReducer = (accumulator, currentBook) => {
       console.log("accumulator");
       console.log(accumulator);
       console.log("currentBook");
       console.log(currentBook);
+
+      let currentBox = 0;
+      let currentRow = 0;
+
       const currentBoxNumbers = accumulator
         ? accumulator.map(boxWithBooks => boxWithBooks.BoxNumber)
         : [];
+
       const setOfBoxesForNextBox = currentBoxNumbers
         ? sortedBoxes.filter(
             sortedBox => !currentBoxNumbers.includes(sortedBox.BoxNumber)
           )
         : null;
+
       const setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst = setOfBoxesForNextBox
         .filter(box => box.Height > currentBook.Height)
         .filter(box => box.Width > currentBook.Depth)
         .sort((a, b) => revCmp(a.Height, b.Height));
+
       const setNextBox = () => {
         accumulator.push({
           ...setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst[0],
@@ -126,25 +133,34 @@ export default class App extends Component {
           currentBox++;
         }
       };
+
       if (!accumulator[0]) setNextBox();
-      const workingRow = () =>
-        accumulator[currentBox]
-          ? immutableSplice(accumulator[currentBox].rows[currentRow], 0, 0, {
-              ...currentBook
-            }).map((bookA, bookB) => cmp(bookA.Depth, bookB.Depth))
-          : null;
+
+      const workingRow = immutableSplice(
+        accumulator[currentBox].rows[currentRow],
+        0,
+        0,
+        {
+          ...currentBook
+        }
+      ).map((bookA, bookB) => cmp(bookA.Depth, bookB.Depth));
+
       const indexOfBook = book =>
-        workingRow().indexOf(workingBook => workingBook.Title === book.Title);
+        workingRow.indexOf(workingBook => workingBook.Title === book.Title);
+
       const indexOfOtherBook = (otherBook, otherRow) =>
         otherRow.indexOf(workingOtherBook => workingOtherBook.Title);
+
       const indexOfAffectedBook = affectedBook =>
-        workingRow().indexOf(
+        workingRow.indexOf(
           workingAffectedBook =>
             workingAffectedBook.Title === affectedBook.Title
         );
-      const affectedBooks = workingRow()
-        ? workingRow().filter((book, i) => i >= indexOfBook(currentBook))
+
+      const affectedBooks = workingRow
+        ? workingRow.filter((book, i) => i >= indexOfBook(currentBook))
         : null;
+
       const checkHeight = () =>
         accumulator[currentBox]
           ? currentBook.Height <= accumulator[currentBox].Height
@@ -155,15 +171,17 @@ export default class App extends Component {
               .Height
           ? true
           : false;
+
       const checkWidth = () =>
         accumulator[currentBox]
-          ? (workingRow() &&
+          ? (workingRow &&
               accumulator[currentBox].Depth >=
-                workingRow().reduce(bookBookReducer, 0)) ||
+                workingRow.reduce(bookBookReducer, 0)) ||
             currentBook.Width < accumulator[currentBox].Depth
             ? true
             : false
           : true;
+
       const obxs = (otherBook, otherRow) =>
         currentRow === 0
           ? accumulator[currentBox].Depth -
@@ -185,24 +203,26 @@ export default class App extends Component {
       const abxs = affectedBook =>
         currentRow === 1
           ? accumulator[currentBox].Depth -
-            workingRow()
+            workingRow
               .filter((book, i) => i < indexOfAffectedBook(affectedBook))
               .reduce(bookBookReducer, 0)
-          : workingRow()
+          : workingRow
               .filter((book, i) => i < indexOfAffectedBook(affectedBook))
               .reduce(bookBookReducer, 0);
       const abxe = affectedBook =>
         currentRow === 1
           ? accumulator[currentBox].Depth -
-            workingRow()
+            workingRow
               .filter((book, i) => i <= indexOfAffectedBook(affectedBook))
               .reduce(bookBookReducer, 0)
-          : workingRow()
+          : workingRow
               .filter((book, i) => i <= indexOfAffectedBook(affectedBook))
               .reduce(bookBookReducer, 0);
+
       const otherRow = accumulator[currentBox]
         ? accumulator[currentBox].rows[1 - currentRow]
         : null;
+
       const overlappingBooks = affectedBooks
         ? affectedBooks.map(affectedBook =>
             otherRow
@@ -219,6 +239,7 @@ export default class App extends Component {
               : null
           )
         : null;
+
       const conflicts = overlappingBooks[0]
         ? overlappingBooks.filter(
             otherBookAffectedBookArray =>
@@ -227,13 +248,16 @@ export default class App extends Component {
               accumulator[currentBox].Width
           )
         : null;
+
       const checkDepth = () =>
         accumulator[currentBox]
           ? currentBook.Depth < accumulator[currentBox].Width && !conflicts
             ? true
             : false
           : true;
+
       let sorted = false;
+
       while (!sorted) {
         if (checkHeight()) {
           if (checkWidth()) {
@@ -273,19 +297,19 @@ export default class App extends Component {
           }
         }
       }
+
       let nextAccumulator = [...accumulator];
-      if (nextAccumulator === undefined) {
-        nextAccumulator = [];
-      }
+
       nextAccumulator[currentBox].rows[currentRow] = immutableSplice(
         nextAccumulator[currentBox].rows[currentRow],
         0,
         0,
         currentBook
       ).sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth));
+
       return nextAccumulator;
     };
-    const boxesWithBooks = sortedBooks.reduce(boxBoxReducer, []);
+    const boxesWithBooks = sortedBooks.reduce(bookBoxReducer, []);
     this.setState({ boxesWithBooks });
   }
   render() {
