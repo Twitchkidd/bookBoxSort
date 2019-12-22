@@ -94,61 +94,66 @@ export default class App extends Component {
     );
     const bookBookReducer = (accumulator, currentBook) =>
       accumulator + currentBook.Width;
-    let currentBox = 0;
-    let currentRow = 0;
     const bookBoxReducer = (accumulator, currentBook) => {
-      console.log("accumulator");
-      console.log(accumulator);
+      // console.log("accumulator");
+      // console.log(accumulator);
       console.log("currentBook");
       console.log(currentBook);
       let nextAccumulator = [...accumulator];
       let sorted = false;
+      let currentBox = 0;
+      let currentRow = 0;
+      function init() {
+        if (nextAccumulator.length === 0) {
+          const initialNextBoxes = sortedBoxes
+            .filter(box => box.Height > currentBook.Height)
+            .filter(box => box.Width > currentBook.Depth)
+            .sort((a, b) => revCmp(a.Height, b.Height));
+          nextAccumulator = [{ ...initialNextBoxes[0], rows: [[], []] }];
+        }
+      }
+      init();
       while (!sorted) {
-        let currentBoxNumbers = nextAccumulator[0]
-          ? nextAccumulator.map(boxWithBooks => boxWithBooks.BoxNumber)
-          : [];
-        let setOfBoxesForNextBox = currentBoxNumbers[0]
-          ? sortedBoxes.filter(
-              sortedBox => !currentBoxNumbers.includes(sortedBox.BoxNumber)
-            )
-          : sortedBoxes;
-        let setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst = [
-          ...setOfBoxesForNextBox
-        ]
-          .filter(box => box.Height > currentBook.Height)
-          .filter(box => box.Width > currentBook.Depth)
-          .sort((a, b) => revCmp(a.Height, b.Height));
-        const setNextBox = function() {
-          if (currentBox !== 0) ++currentBox;
-          nextAccumulator = [...nextAccumulator].concat(
-            [
-              ...setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst
-            ][0]
+        function setNextBox() {
+          const currentBoxNumbers = nextAccumulator.map(
+            boxWithBooks => boxWithBooks.BoxNumber
           );
-          nextAccumulator[currentBox].rows = [[currentBook], []];
-          sorted = true;
-        };
-        if (!nextAccumulator[0]) {
-          console.log("entering next box from top if");
-          setNextBox();
-          break;
+          const setOfBoxesForNextBox = sortedBoxes.filter(
+            sortedBox => !currentBoxNumbers.includes(sortedBox.BoxNumber)
+          );
+          const setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst = setOfBoxesForNextBox
+            .filter(box => box.Height > currentBook.Height)
+            .filter(box => box.Width > currentBook.Depth)
+            .sort((a, b) => revCmp(a.Height, b.Height));
+          const nextBox =
+            setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst[0];
+          nextAccumulator = [...nextAccumulator].concat({
+            ...nextBox,
+            rows: [[], []]
+          });
         }
         const checkHeight = () =>
           currentBook.Height <= nextAccumulator[currentBox].Height
             ? true
             : false;
-        const workingRow = [...nextAccumulator][currentBox].rows[currentRow]
-          .concat(currentBook)
-          .sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth));
+        const workingRow =
+          nextAccumulator[currentBox].rows[currentRow].length !== 0
+            ? [...nextAccumulator][currentBox].rows[currentRow]
+                .concat(currentBook)
+                .sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth))
+            : [currentBook];
         const checkWidth = () =>
           nextAccumulator[currentBox].Depth >=
           workingRow.reduce(bookBookReducer, 0)
             ? true
             : false;
-        // ! -----------------------------------------------------------! //
+        const otherRow = nextAccumulator[currentBox].rows[1 - currentRow];
         const indexOfBook = book =>
           workingRow.indexOf(workingBook => workingBook.Title === book.Title);
-        const otherRow = [...nextAccumulator][currentBox].rows[1 - currentRow];
+        const affectedBooks =
+          workingRow.length !== 1
+            ? workingRow.filter((book, i) => i >= indexOfBook(currentBook))
+            : workingRow;
         const indexOfOtherBook = (otherBook, otherRow) =>
           otherRow.indexOf(
             workingOtherBook => workingOtherBook.Title === otherBook.Title
@@ -197,87 +202,88 @@ export default class App extends Component {
                   (workingBook, i) => i <= indexOfOtherBook(otherBook, otherRow)
                 )
                 .reduce(bookBookReducer, 0);
-        const affectedBooks = workingRow.filter(
-          (book, i) => i >= indexOfBook(currentBook)
+        // debugger;
+        const conflicts = otherRow.map(otherBook =>
+          affectedBooks.filter(possiblyNowConflictedBook =>
+            (obxe(otherBook, otherRow) <= bxs(possiblyNowConflictedBook) &&
+              obxe(otherBook, otherRow) >= bxe(possiblyNowConflictedBook)) ||
+            (obxs(otherBook, otherRow) <= bxs(possiblyNowConflictedBook) &&
+              obxs(otherBook, otherRow) >= bxe(possiblyNowConflictedBook)) ||
+            (obxs(otherBook, otherRow) <= bxe(possiblyNowConflictedBook) &&
+              obxe(otherBook, otherRow) >= bxs(possiblyNowConflictedBook))
+              ? true
+              : false
+          )
         );
-        let workingConflictingOtherBookBookIndexPairs = [];
-        const overlappingBooks =
-          otherRow !== []
-            ? otherRow.map(otherBook =>
-                affectedBooks
-                  .filter(book => {
-                    if (
-                      (obxe(otherBook, otherRow) <= bxs(book) &&
-                        obxe(otherBook, otherRow) >= bxe(book)) ||
-                      (obxs(otherBook, otherRow) <= bxs(book) &&
-                        obxs(otherBook, otherRow) >= bxe(book)) ||
-                      (obxs(otherBook, otherRow) <= bxe(book) &&
-                        obxe(otherBook, otherRow) >= bxs(book))
-                    ) {
-                      workingConflictingOtherBookBookIndexPairs.push([
-                        indexOfOtherBook(otherBook, otherRow),
-                        indexOfBook(book)
-                      ]);
-                      return otherBook;
-                    } else {
-                      return null;
-                    }
-                  })
-                  .filter(item => item !== null)
-              )
-            : null;
-        let conflicts =
-          workingConflictingOtherBookBookIndexPairs != "undefined"
-            ? workingConflictingOtherBookBookIndexPairs.filter(
-                otherBookBookArray =>
-                  otherBookBookArray[0].Depth + otherBookBookArray[1].Depth >
-                  nextAccumulator[currentBox].Width
-              )
-            : null;
-        const checkDepth = () =>
-          currentBook.Depth < nextAccumulator[currentBox].Width && !conflicts;
-        // ! -----------------------------------------------------------! //
-        if (checkHeight()) {
-          if (checkWidth()) {
-            if (checkDepth()) {
-              nextAccumulator[currentBox].rows[currentRow] = workingRow;
+        const emptiedConflicts = conflicts.filter(array => array.length);
+        const checkDepth = () => {
+          const bookFits =
+            currentBook.Depth < nextAccumulator[currentBox].Width;
+          const noConflicts = emptiedConflicts.length === 0;
+          if (bookFits && noConflicts) {
+            console.log("Depth pass");
+            console.log(conflicts);
+            console.log(emptiedConflicts);
+            console.log(bookFits);
+            console.log(noConflicts);
+            return true;
+          } else {
+            console.log("Depth fail");
+            console.log(conflicts);
+            console.log(emptiedConflicts);
+            console.log(bookFits);
+            console.log(noConflicts);
+            return false;
+          }
+        };
+        function sortBook() {
+          const nextRow = [...nextAccumulator][currentBox].rows[currentRow]
+            .concat(currentBook)
+            .sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth));
+          nextAccumulator[currentBox].rows[currentRow] = nextRow;
+        }
+        function checkBook() {
+          const nextAction = checkHeight()
+            ? checkWidth()
+              ? checkDepth()
+                ? "Sort book, please!"
+                : nextAccumulator[currentBox].rows[currentRow + 1]
+                ? "Try next row, please!"
+                : nextAccumulator[currentBox + 1]
+                ? "Try next box, please!"
+                : "Next box, please!"
+              : nextAccumulator[currentBox].rows[currentRow + 1]
+              ? "Try next row, please!"
+              : nextAccumulator[currentBox + 1]
+              ? "Try next box, please!"
+              : "Next box, please!"
+            : nextAccumulator[currentBox + 1]
+            ? "Try next box, please!"
+            : "Next box, please!";
+          switch (nextAction) {
+            case "Try next box, please!":
+              currentBox++;
+              currentRow = 0;
+              break;
+            case "Try next row, please!":
+              currentRow++;
+              break;
+            case "Next box, please!":
+              setNextBox();
+              currentBox++;
+              currentRow = 0;
+              break;
+            case "Sort book, please!":
+              sortBook();
+              currentBox++;
+              currentRow = 0;
               sorted = true;
               break;
-            } else {
-              if (currentRow === 0) {
-                ++currentRow;
-              } else {
-                currentRow = 0;
-                if (nextAccumulator[currentBox + 1]) {
-                  ++currentBox;
-                } else {
-                  console.log("entering setnextbox from a depth fail");
-                  setNextBox();
-                }
-              }
-            }
-          } else {
-            if (currentRow === 0 && nextAccumulator[currentBox].rows[1]) {
-              ++currentRow;
-            } else {
-              currentRow = 0;
-              if (nextAccumulator[currentBox + 1]) {
-                ++currentBox;
-              } else {
-                console.log("entering setnextbox from a width fail");
-                setNextBox();
-              }
-            }
-          }
-        } else {
-          if (nextAccumulator[currentBox + 1]) {
-            ++currentBox;
-          } else {
-            console.log("entering setnextbox from a height fail");
-            setNextBox();
-            sorted = true;
+            default:
+              console.error("Error in switch statement!");
           }
         }
+        checkBook();
       }
       return nextAccumulator;
     };
