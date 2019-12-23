@@ -4,6 +4,9 @@ import htmlColors from "html-colors";
 import Global from "./Global";
 import { boxes, catalog } from "./data";
 
+// TODO RM TESTING
+let gotti = false;
+
 const eigengrau = "#16161d";
 
 const AppWrapper = styled.div`
@@ -94,7 +97,7 @@ export default class App extends Component {
     );
     const bookBookReducer = (accumulator, currentBook) =>
       accumulator + currentBook.Width;
-    const bookBoxReducer = (accumulator, currentBook) => {
+    const bookBoxReducer = (accumulator, currentBook, l) => {
       // console.log("accumulator");
       // console.log(accumulator);
       console.log("currentBook");
@@ -138,7 +141,7 @@ export default class App extends Component {
             : false;
         const workingRow =
           nextAccumulator[currentBox].rows[currentRow].length !== 0
-            ? [...nextAccumulator][currentBox].rows[currentRow]
+            ? nextAccumulator[currentBox].rows[currentRow]
                 .concat(currentBook)
                 .sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth))
             : [currentBook];
@@ -148,94 +151,86 @@ export default class App extends Component {
             ? true
             : false;
         const otherRow = nextAccumulator[currentBox].rows[1 - currentRow];
-        const indexOfBook = book =>
-          workingRow.indexOf(workingBook => workingBook.Title === book.Title);
-        const affectedBooks =
-          workingRow.length !== 1
-            ? workingRow.filter((book, i) => i >= indexOfBook(currentBook))
-            : workingRow;
-        const indexOfOtherBook = (otherBook, otherRow) =>
-          otherRow.indexOf(
-            workingOtherBook => workingOtherBook.Title === otherBook.Title
+        let affectedBooks = [];
+        if (workingRow.length === 1) {
+          affectedBooks = workingRow;
+        } else {
+          affectedBooks = workingRow.filter(
+            (book, i) => i >= workingRow.indexOf(currentBook)
           );
+        }
         const bxs = book =>
           currentRow === 0
             ? workingRow
-                .filter((workingBook, i) => i < indexOfBook(book))
+                .filter((workingBook, i) => i < workingRow.indexOf(book))
                 .reduce(bookBookReducer, 0)
             : nextAccumulator[currentBox].Depth -
               workingRow
-                .filter((workingBook, i) => i < indexOfBook(book))
+                .filter((workingBook, i) => i < workingRow.indexOf(book))
                 .reduce(bookBookReducer, 0);
         const bxe = book =>
           currentRow === 0
             ? workingRow
-                .filter((workingBook, i) => i <= indexOfBook(book))
+                .filter((workingBook, i) => i <= workingRow.indexOf(book))
                 .reduce(bookBookReducer, 0)
             : nextAccumulator[currentBox].Depth -
               workingRow
-                .filter((workingBook, i) => i <= indexOfBook(book))
+                .filter((workingBook, i) => i <= workingRow.indexOf(book))
                 .reduce(bookBookReducer, 0);
-        const obxs = (otherBook, otherRow) =>
+        const obxs = otherBook =>
           currentRow === 0
             ? nextAccumulator[currentBox].Depth -
               otherRow
-                .filter(
-                  (workingBook, i) => i < indexOfOtherBook(otherBook, otherRow)
-                )
+                .filter((workingBook, i) => i < otherRow.indexOf(otherBook))
                 .reduce(bookBookReducer, 0)
             : otherRow
-                .filter(
-                  (workingBook, i) => i < indexOfOtherBook(otherBook, otherRow)
-                )
+                .filter((workingBook, i) => i < otherRow.indexOf(otherBook))
                 .reduce(bookBookReducer, 0);
-        const obxe = (otherBook, otherRow) =>
+        const obxe = otherBook =>
           currentRow === 0
             ? nextAccumulator[currentBox].Depth -
               otherRow
-                .filter(
-                  (workingBook, i) => i <= indexOfOtherBook(otherBook, otherRow)
-                )
+                .filter((workingBook, i) => i <= otherRow.indexOf(otherBook))
                 .reduce(bookBookReducer, 0)
             : otherRow
-                .filter(
-                  (workingBook, i) => i <= indexOfOtherBook(otherBook, otherRow)
-                )
+                .filter((workingBook, i) => i <= otherRow.indexOf(otherBook))
                 .reduce(bookBookReducer, 0);
-        // debugger;
-        const conflicts = otherRow.map(otherBook =>
-          affectedBooks.filter(possiblyNowConflictedBook =>
-            (obxe(otherBook, otherRow) <= bxs(possiblyNowConflictedBook) &&
-              obxe(otherBook, otherRow) >= bxe(possiblyNowConflictedBook)) ||
-            (obxs(otherBook, otherRow) <= bxs(possiblyNowConflictedBook) &&
-              obxs(otherBook, otherRow) >= bxe(possiblyNowConflictedBook)) ||
-            (obxs(otherBook, otherRow) <= bxe(possiblyNowConflictedBook) &&
-              obxe(otherBook, otherRow) >= bxs(possiblyNowConflictedBook))
-              ? true
-              : false
-          )
-        );
-        const emptiedConflicts = conflicts.filter(array => array.length);
-        const checkDepth = () => {
-          const bookFits =
-            currentBook.Depth < nextAccumulator[currentBox].Width;
-          const noConflicts = emptiedConflicts.length === 0;
-          if (bookFits && noConflicts) {
-            console.log("Depth pass");
-            console.log(conflicts);
-            console.log(emptiedConflicts);
-            console.log(bookFits);
-            console.log(noConflicts);
-            return true;
-          } else {
-            console.log("Depth fail");
-            console.log(conflicts);
-            console.log(emptiedConflicts);
-            console.log(bookFits);
-            console.log(noConflicts);
-            return false;
-          }
-        };
+        const overlaps = affectedBooks
+          .map(affectedBook => {
+            const overlapsWithAffectedBook = otherRow.filter(
+              otherBook =>
+                (obxe(otherBook) <= bxs(affectedBook) &&
+                  obxe(otherBook) >= bxe(affectedBook)) ||
+                (obxs(otherBook) <= bxs(affectedBook) &&
+                  obxs(otherBook) >= bxe(affectedBook)) ||
+                (obxs(otherBook) <= bxe(affectedBook) &&
+                  obxe(otherBook) >= bxs(affectedBook))
+            );
+            return [affectedBook, overlapsWithAffectedBook];
+          })
+          .filter(item => item[1].length !== 0);
+        console.log(overlaps);
+        const conflicts = overlaps
+          .map(overlapsArray => {
+            const affectedBook = overlapsArray[0];
+            const overlapsWithAffectedBook = overlapsArray[1];
+            return overlapsWithAffectedBook.filter(
+              book =>
+                book.Depth + affectedBook.Depth <
+                nextAccumulator[currentBox].Width
+            );
+          })
+          .filter(item => item.length !== 0);
+        const bookFits = currentBook.Depth < nextAccumulator[currentBox].Width;
+        const noConflicts = conflicts.length === 0;
+        if (l === 42) {
+          gotti = true;
+          debugger;
+        }
+        if (gotti) {
+          debugger;
+        }
+        const checkDepth = () => (bookFits && noConflicts ? true : false);
         function sortBook() {
           const nextRow = [...nextAccumulator][currentBox].rows[currentRow]
             .concat(currentBook)
