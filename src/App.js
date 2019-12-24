@@ -4,9 +4,6 @@ import htmlColors from "html-colors";
 import Global from "./Global";
 import { boxes, catalog } from "./data";
 
-// TODO RM TESTING
-let gotti = false;
-
 const eigengrau = "#16161d";
 
 const AppWrapper = styled.div`
@@ -55,7 +52,7 @@ const Book = styled.div.attrs(props => ({
 }))`
   height: ${props => `${props.height * 10}px`};
   width: ${props => `${props.width * 10}px`};
-  border: 1px solid ${eigengrau};
+  border: 0 1px solid ${eigengrau};
 `;
 
 export default class App extends Component {
@@ -98,10 +95,6 @@ export default class App extends Component {
     const bookBookReducer = (accumulator, currentBook) =>
       accumulator + currentBook.Width;
     const bookBoxReducer = (accumulator, currentBook, l) => {
-      // console.log("accumulator");
-      // console.log(accumulator);
-      console.log("currentBook");
-      console.log(currentBook);
       let nextAccumulator = [...accumulator];
       let sorted = false;
       let currentBox = 0;
@@ -139,12 +132,9 @@ export default class App extends Component {
           currentBook.Height <= nextAccumulator[currentBox].Height
             ? true
             : false;
-        const workingRow =
-          nextAccumulator[currentBox].rows[currentRow].length !== 0
-            ? nextAccumulator[currentBox].rows[currentRow]
-                .concat(currentBook)
-                .sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth))
-            : [currentBook];
+        const workingRow = nextAccumulator[currentBox].rows[currentRow]
+          .concat(currentBook)
+          .sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth));
         const checkWidth = () =>
           nextAccumulator[currentBox].Depth >=
           workingRow.reduce(bookBookReducer, 0)
@@ -209,27 +199,17 @@ export default class App extends Component {
             return [affectedBook, overlapsWithAffectedBook];
           })
           .filter(item => item[1].length !== 0);
-        console.log(overlaps);
         const conflicts = overlaps
-          .map(overlapsArray => {
-            const affectedBook = overlapsArray[0];
-            const overlapsWithAffectedBook = overlapsArray[1];
-            return overlapsWithAffectedBook.filter(
+          .map(overlapsArray =>
+            overlapsArray[1].filter(
               book =>
-                book.Depth + affectedBook.Depth <
+                book.Depth + overlapsArray[0].Depth >
                 nextAccumulator[currentBox].Width
-            );
-          })
+            )
+          )
           .filter(item => item.length !== 0);
         const bookFits = currentBook.Depth < nextAccumulator[currentBox].Width;
         const noConflicts = conflicts.length === 0;
-        if (l === 42) {
-          gotti = true;
-          debugger;
-        }
-        if (gotti) {
-          debugger;
-        }
         const checkDepth = () => (bookFits && noConflicts ? true : false);
         function sortBook() {
           const nextRow = [...nextAccumulator][currentBox].rows[currentRow]
@@ -275,7 +255,7 @@ export default class App extends Component {
               sorted = true;
               break;
             default:
-              console.error("Error in switch statement!");
+              break;
           }
         }
         checkBook();
