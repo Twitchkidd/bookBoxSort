@@ -2670,7 +2670,7 @@ export const catalog = [
     Notes: '',
   },
   {
-    Title: 'Old Turltle',
+    Title: 'Old Turtle',
     By: 'Douglas Wood',
     FictionOrNon: 'F',
     Subjects: 'Children',
@@ -2895,7 +2895,7 @@ export const catalog = [
     Notes: '',
   },
   {
-    Title: 'Old Turltle',
+    Title: 'Old Turtle',
     By: 'Douglas Wood',
     FictionOrNon: 'F',
     Subjects: 'Children',
