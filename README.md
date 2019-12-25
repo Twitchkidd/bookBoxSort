@@ -1,3 +1,13 @@
+# Alyssa - A Book Packing Assistant!
+
+Okay, so, Merry Christmas, and at this point the code just has to be good enough. It's at 22 boxes, unless I really do add more books, which, to be fair, really shouldn't upset the apple cart here. Am I looking forward to measuring another book, ever? No, but I know I can do it at least.
+
+Anyway, it's got to spit back out the ole list o' boxes with books, and back into Google Sheets it goes, and I get packing.
+
+For homework, future me, if you can squash the bug where it's overlapping, and see how efficient and effective you can get this thing, and develop good coding habits along the way, that'd be great.
+
+I learned a lot, but not enough, about functional programming, debugging, and just general JavaScript. Good project. Good job, coder. ::accepts-pat-on-head::
+
 ## Alyssa's Backstory!
 
 Alyssa is a trans woman who escaped to Chicago to escape persecution and pursue her love for library science, when a chance encounter traps her into the maelstrom at the dark heart of academia. Will Alyssa and her rag-tag band of renegade librarians save America from fiendish administrators and devilishly deviant secretaries?
