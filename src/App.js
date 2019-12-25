@@ -9,21 +9,15 @@ import { storageAvailable } from "./utils/storageAvailable";
 
 const eigengrau = "#16161d";
 
-let sortIterator = 0;
-
 const AppWrapper = styled.div`
   height: 100%;
   min-height: 100vh;
-  width: max-content;
-  min-width: 100vw;
-  background: linear-gradient(
-    to right,
-    ${htmlColors.random()},
-    ${htmlColors.random()}
-  );
+  width: 100vw;
+  background-image: linear-gradient(to right, #C1357E 0%, #C1357E 40%, #675997 40%, #675997 60%, #0655A9 60%, #0655A9 100%);
   padding: 20px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
 `;
@@ -316,7 +310,7 @@ export default class App extends Component {
   render() {
     const { boxesWithBooks, totalBoxes } = this.state;
     return (
-      <AppWrapper className={"AppWrapper"}>
+      <AppWrapper className={"bi"}>
         <Global />
         {boxesWithBooks ? (
           <Fragment>
