@@ -1,8 +1,10 @@
-import React, { Component } from "react";
+import React, { Component, Fragment } from "react";
 import styled from "styled-components";
 import htmlColors from "html-colors";
 import Global from "./Global";
+import ReactTooltip from "react-tooltip";
 import { boxes, catalog } from "./data";
+import { storageAvailable } from "./utils/storageAvailable";
 
 const eigengrau = "#16161d";
 
@@ -52,226 +54,255 @@ const Book = styled.div.attrs(props => ({
 }))`
   height: ${props => `${props.height * 10}px`};
   width: ${props => `${props.width * 10}px`};
-  border: 0 1px solid ${eigengrau};
 `;
 
 export default class App extends Component {
   state = {
-    boxesWithBooks: null
+    boxesWithBooks: null,
+    totalBoxes: null
   };
   componentDidMount() {
-    const cmp = (a, b) => (a < b) - (a > b);
-    const revCmp = (a, b) => (a > b) - (a < b);
-    const sortedBooks = [...catalog].sort(
-      (a, b) =>
-        cmp(a.Height, b.Height) ||
-        cmp(a.Width, b.Width) ||
-        cmp(a.Depth, b.Depth)
-    );
-    const inchesToCm = inches => inches * 2.54;
-    const boxesWithDimensions = boxes.filter(box =>
-      box.Width !== "TODO" ? true : false
-    );
-    const boxesWithDimensionInCm = boxesWithDimensions.map(box => ({
-      ...box,
-      Height: inchesToCm(box.Height),
-      Width: inchesToCm(box.Width),
-      Depth: inchesToCm(box.Depth)
-    }));
-    const boxesWithinWeight = boxesWithDimensionInCm.filter(box => {
-      let boxVolume = box.Height * box.Width * box.Depth;
-      if (boxVolume <= 27733333 * 0.8) {
-        return true;
+    let localStorageAvailable = false;
+    let cached = false;
+    let cachedBoxesWithBooks = [];
+    if (storageAvailable("localStorage")) {
+      localStorageAvailable = true;
+      if (localStorage.getItem("data")) {
+        cached = true;
+        cachedBoxesWithBooks = JSON.parse(localStorage.getItem("data"));
       } else {
-        return false;
+        console.log("no cache");
       }
-    });
-    const sortedBoxes = [...boxesWithinWeight].sort(
-      (a, b) =>
-        cmp(a.Height, b.Height) ||
-        cmp(a.Width, b.Width) ||
-        cmp(a.Depth, b.Depth)
-    );
-    const bookBookReducer = (accumulator, currentBook) =>
-      accumulator + currentBook.Width;
-    const bookBoxReducer = (accumulator, currentBook, l) => {
-      let nextAccumulator = [...accumulator];
-      let sorted = false;
-      let currentBox = 0;
-      let currentRow = 0;
-      function init() {
-        if (nextAccumulator.length === 0) {
-          const initialNextBoxes = sortedBoxes
-            .filter(box => box.Height > currentBook.Height)
-            .filter(box => box.Width > currentBook.Depth)
-            .sort((a, b) => revCmp(a.Height, b.Height));
-          nextAccumulator = [{ ...initialNextBoxes[0], rows: [[], []] }];
-        }
-      }
-      init();
-      while (!sorted) {
-        function setNextBox() {
-          const currentBoxNumbers = nextAccumulator.map(
-            boxWithBooks => boxWithBooks.BoxNumber
-          );
-          const setOfBoxesForNextBox = sortedBoxes.filter(
-            sortedBox => !currentBoxNumbers.includes(sortedBox.BoxNumber)
-          );
-          const setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst = setOfBoxesForNextBox
-            .filter(box => box.Height > currentBook.Height)
-            .filter(box => box.Width > currentBook.Depth)
-            .sort((a, b) => revCmp(a.Height, b.Height));
-          const nextBox =
-            setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst[0];
-          nextAccumulator = [...nextAccumulator].concat({
-            ...nextBox,
-            rows: [[], []]
-          });
-        }
-        const checkHeight = () =>
-          currentBook.Height <= nextAccumulator[currentBox].Height
-            ? true
-            : false;
-        const workingRow = nextAccumulator[currentBox].rows[currentRow]
-          .concat(currentBook)
-          .sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth));
-        const checkWidth = () =>
-          nextAccumulator[currentBox].Depth >=
-          workingRow.reduce(bookBookReducer, 0)
-            ? true
-            : false;
-        const otherRow = nextAccumulator[currentBox].rows[1 - currentRow];
-        let affectedBooks = [];
-        if (workingRow.length === 1) {
-          affectedBooks = workingRow;
+    } else {
+      console.log("no local storage");
+    }
+    if (!cached) {
+      const cmp = (a, b) => (a < b) - (a > b);
+      const revCmp = (a, b) => (a > b) - (a < b);
+      const sortedBooks = [...catalog].sort(
+        (a, b) =>
+          cmp(a.Height, b.Height) ||
+          cmp(a.Width, b.Width) ||
+          cmp(a.Depth, b.Depth)
+      );
+      const inchesToCm = inches => inches * 2.54;
+      const boxesWithDimensions = boxes.filter(box =>
+        box.Width !== "TODO" ? true : false
+      );
+      const boxesWithDimensionInCm = boxesWithDimensions.map(box => ({
+        ...box,
+        Height: inchesToCm(box.Height),
+        Width: inchesToCm(box.Width),
+        Depth: inchesToCm(box.Depth)
+      }));
+      const boxesWithinWeight = boxesWithDimensionInCm.filter(box => {
+        let boxVolume = box.Height * box.Width * box.Depth;
+        if (boxVolume <= 27733333 * 0.8) {
+          return true;
         } else {
-          affectedBooks = workingRow.filter(
-            (book, i) => i >= workingRow.indexOf(currentBook)
-          );
+          return false;
         }
-        const bxs = book =>
-          currentRow === 0
-            ? workingRow
-                .filter((workingBook, i) => i < workingRow.indexOf(book))
-                .reduce(bookBookReducer, 0)
-            : nextAccumulator[currentBox].Depth -
-              workingRow
-                .filter((workingBook, i) => i < workingRow.indexOf(book))
-                .reduce(bookBookReducer, 0);
-        const bxe = book =>
-          currentRow === 0
-            ? workingRow
-                .filter((workingBook, i) => i <= workingRow.indexOf(book))
-                .reduce(bookBookReducer, 0)
-            : nextAccumulator[currentBox].Depth -
-              workingRow
-                .filter((workingBook, i) => i <= workingRow.indexOf(book))
-                .reduce(bookBookReducer, 0);
-        const obxs = otherBook =>
-          currentRow === 0
-            ? nextAccumulator[currentBox].Depth -
-              otherRow
-                .filter((workingBook, i) => i < otherRow.indexOf(otherBook))
-                .reduce(bookBookReducer, 0)
-            : otherRow
-                .filter((workingBook, i) => i < otherRow.indexOf(otherBook))
-                .reduce(bookBookReducer, 0);
-        const obxe = otherBook =>
-          currentRow === 0
-            ? nextAccumulator[currentBox].Depth -
-              otherRow
-                .filter((workingBook, i) => i <= otherRow.indexOf(otherBook))
-                .reduce(bookBookReducer, 0)
-            : otherRow
-                .filter((workingBook, i) => i <= otherRow.indexOf(otherBook))
-                .reduce(bookBookReducer, 0);
-        const overlaps = affectedBooks
-          .map(affectedBook => {
-            const overlapsWithAffectedBook = otherRow.filter(
-              otherBook =>
-                (obxe(otherBook) <= bxs(affectedBook) &&
-                  obxe(otherBook) >= bxe(affectedBook)) ||
-                (obxs(otherBook) <= bxs(affectedBook) &&
-                  obxs(otherBook) >= bxe(affectedBook)) ||
-                (obxs(otherBook) <= bxe(affectedBook) &&
-                  obxe(otherBook) >= bxs(affectedBook))
+      });
+      const sortedBoxes = [...boxesWithinWeight].sort(
+        (a, b) =>
+          cmp(a.Height, b.Height) ||
+          cmp(a.Width, b.Width) ||
+          cmp(a.Depth, b.Depth)
+      );
+      const bookBookReducer = (accumulator, currentBook) =>
+        accumulator + currentBook.Width;
+      const bookBoxReducer = (accumulator, currentBook, l) => {
+        let nextAccumulator = [...accumulator];
+        let sorted = false;
+        let currentBox = 0;
+        let currentRow = 0;
+        function init() {
+          if (nextAccumulator.length === 0) {
+            const initialNextBoxes = sortedBoxes
+              .filter(box => box.Height > currentBook.Height)
+              .filter(box => box.Width > currentBook.Depth)
+              .sort((a, b) => revCmp(a.Height, b.Height));
+            nextAccumulator = [{ ...initialNextBoxes[0], rows: [[], []] }];
+          }
+        }
+        init();
+        while (!sorted) {
+          function setNextBox() {
+            const currentBoxNumbers = nextAccumulator.map(
+              boxWithBooks => boxWithBooks.BoxNumber
             );
-            return [affectedBook, overlapsWithAffectedBook];
-          })
-          .filter(item => item[1].length !== 0);
-        const conflicts = overlaps
-          .map(overlapsArray =>
-            overlapsArray[1].filter(
-              book =>
-                book.Depth + overlapsArray[0].Depth >
-                nextAccumulator[currentBox].Width
-            )
-          )
-          .filter(item => item.length !== 0);
-        const bookFits = currentBook.Depth < nextAccumulator[currentBox].Width;
-        const noConflicts = conflicts.length === 0;
-        const checkDepth = () => (bookFits && noConflicts ? true : false);
-        function sortBook() {
-          const nextRow = [...nextAccumulator][currentBox].rows[currentRow]
+            const setOfBoxesForNextBox = sortedBoxes.filter(
+              sortedBox => !currentBoxNumbers.includes(sortedBox.BoxNumber)
+            );
+            const setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst = setOfBoxesForNextBox
+              .filter(box => box.Height > currentBook.Height)
+              .filter(box => box.Width > currentBook.Depth)
+              .sort((a, b) => revCmp(a.Height, b.Height));
+            const nextBox =
+              setOfBoxesForNextBoxCheckedForHeightAndDepthAndSortedSoTheShortestIsCheckedFirst[0];
+            nextAccumulator = [...nextAccumulator].concat({
+              ...nextBox,
+              rows: [[], []]
+            });
+          }
+          const checkHeight = () =>
+            currentBook.Height <= nextAccumulator[currentBox].Height
+              ? true
+              : false;
+          const workingRow = nextAccumulator[currentBox].rows[currentRow]
             .concat(currentBook)
             .sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth));
-          nextAccumulator[currentBox].rows[currentRow] = nextRow;
-        }
-        function checkBook() {
-          const nextAction = checkHeight()
-            ? checkWidth()
-              ? checkDepth()
-                ? "Sort book, please!"
+          const checkWidth = () =>
+            nextAccumulator[currentBox].Depth >=
+            workingRow.reduce(bookBookReducer, 0)
+              ? true
+              : false;
+          const otherRow = nextAccumulator[currentBox].rows[1 - currentRow];
+          let affectedBooks = [];
+          if (workingRow.length === 1) {
+            affectedBooks = workingRow;
+          } else {
+            affectedBooks = workingRow.filter(
+              (book, i) => i >= workingRow.indexOf(currentBook)
+            );
+          }
+          const bxs = book =>
+            currentRow === 0
+              ? workingRow
+                  .filter((workingBook, i) => i < workingRow.indexOf(book))
+                  .reduce(bookBookReducer, 0)
+              : nextAccumulator[currentBox].Depth -
+                workingRow
+                  .filter((workingBook, i) => i < workingRow.indexOf(book))
+                  .reduce(bookBookReducer, 0);
+          const bxe = book =>
+            currentRow === 0
+              ? workingRow
+                  .filter((workingBook, i) => i <= workingRow.indexOf(book))
+                  .reduce(bookBookReducer, 0)
+              : nextAccumulator[currentBox].Depth -
+                workingRow
+                  .filter((workingBook, i) => i <= workingRow.indexOf(book))
+                  .reduce(bookBookReducer, 0);
+          const obxs = otherBook =>
+            currentRow === 0
+              ? nextAccumulator[currentBox].Depth -
+                otherRow
+                  .filter((workingBook, i) => i < otherRow.indexOf(otherBook))
+                  .reduce(bookBookReducer, 0)
+              : otherRow
+                  .filter((workingBook, i) => i < otherRow.indexOf(otherBook))
+                  .reduce(bookBookReducer, 0);
+          const obxe = otherBook =>
+            currentRow === 0
+              ? nextAccumulator[currentBox].Depth -
+                otherRow
+                  .filter((workingBook, i) => i <= otherRow.indexOf(otherBook))
+                  .reduce(bookBookReducer, 0)
+              : otherRow
+                  .filter((workingBook, i) => i <= otherRow.indexOf(otherBook))
+                  .reduce(bookBookReducer, 0);
+          const overlaps = affectedBooks
+            .map(affectedBook => {
+              const overlapsWithAffectedBook = otherRow.filter(
+                otherBook =>
+                  (obxe(otherBook) <= bxs(affectedBook) &&
+                    obxe(otherBook) >= bxe(affectedBook)) ||
+                  (obxs(otherBook) <= bxs(affectedBook) &&
+                    obxs(otherBook) >= bxe(affectedBook)) ||
+                  (obxs(otherBook) <= bxe(affectedBook) &&
+                    obxe(otherBook) >= bxs(affectedBook))
+              );
+              return [affectedBook, overlapsWithAffectedBook];
+            })
+            .filter(item => item[1].length !== 0);
+          const conflicts = overlaps
+            .map(overlapsArray =>
+              overlapsArray[1].filter(
+                book =>
+                  book.Depth + overlapsArray[0].Depth + 1 >
+                  nextAccumulator[currentBox].Width
+              )
+            )
+            .filter(item => item.length !== 0);
+          const bookFits =
+            currentBook.Depth + 1 < nextAccumulator[currentBox].Width;
+          const noConflicts = conflicts.length === 0;
+          const checkDepth = () => (bookFits && noConflicts ? true : false);
+          function sortBook() {
+            const nextRow = [...nextAccumulator][currentBox].rows[currentRow]
+              .concat(currentBook)
+              .sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth));
+            nextAccumulator[currentBox].rows[currentRow] = nextRow;
+          }
+          function checkBook() {
+            const nextAction = checkHeight()
+              ? checkWidth()
+                ? checkDepth()
+                  ? "Sort book, please!"
+                  : nextAccumulator[currentBox].rows[currentRow + 1]
+                  ? "Try next row, please!"
+                  : nextAccumulator[currentBox + 1]
+                  ? "Try next box, please!"
+                  : "Next box, please!"
                 : nextAccumulator[currentBox].rows[currentRow + 1]
                 ? "Try next row, please!"
                 : nextAccumulator[currentBox + 1]
                 ? "Try next box, please!"
                 : "Next box, please!"
-              : nextAccumulator[currentBox].rows[currentRow + 1]
-              ? "Try next row, please!"
               : nextAccumulator[currentBox + 1]
               ? "Try next box, please!"
-              : "Next box, please!"
-            : nextAccumulator[currentBox + 1]
-            ? "Try next box, please!"
-            : "Next box, please!";
-          switch (nextAction) {
-            case "Try next box, please!":
-              currentBox++;
-              currentRow = 0;
-              break;
-            case "Try next row, please!":
-              currentRow++;
-              break;
-            case "Next box, please!":
-              setNextBox();
-              currentBox++;
-              currentRow = 0;
-              break;
-            case "Sort book, please!":
-              sortBook();
-              currentBox++;
-              currentRow = 0;
-              sorted = true;
-              break;
-            default:
-              break;
+              : "Next box, please!";
+            switch (nextAction) {
+              case "Try next box, please!":
+                currentBox++;
+                currentRow = 0;
+                break;
+              case "Try next row, please!":
+                currentRow++;
+                break;
+              case "Next box, please!":
+                setNextBox();
+                currentBox++;
+                currentRow = 0;
+                break;
+              case "Sort book, please!":
+                sortBook();
+                currentBox++;
+                currentRow = 0;
+                sorted = true;
+                break;
+              default:
+                break;
+            }
           }
+          checkBook();
         }
-        checkBook();
+        return nextAccumulator;
+      };
+      const boxesWithBooks = sortedBooks.reduce(bookBoxReducer, []);
+      const totalBoxes = boxesWithBooks.length;
+      if (localStorageAvailable) {
+        localStorage.setItem("data", JSON.stringify(boxesWithBooks));
       }
-      return nextAccumulator;
-    };
-    const boxesWithBooks = sortedBooks.reduce(bookBoxReducer, []);
-    this.setState({ boxesWithBooks });
+      this.setState({ boxesWithBooks, totalBoxes });
+    } else {
+      this.setState({
+        boxesWithBooks: cachedBoxesWithBooks,
+        totalBoxes: cachedBoxesWithBooks.length
+      });
+    }
   }
   render() {
-    const { boxesWithBooks } = this.state;
+    const { boxesWithBooks, totalBoxes } = this.state;
+    console.log(boxesWithBooks);
     return (
       <AppWrapper className={"AppWrapper"}>
         <Global />
-        {boxesWithBooks
-          ? boxesWithBooks.map((box, i) => (
+        {boxesWithBooks ? (
+          <Fragment>
+            <p>Total boxes: {totalBoxes}</p>
+            {boxesWithBooks.map((box, i) => (
               <Box
                 height={box.Width}
                 width={box.Depth}
@@ -283,13 +314,22 @@ export default class App extends Component {
                       <Row left={true} className={"Row"}>
                         {row.map((book, k) => {
                           return (
-                            <Book
-                              height={book.Depth}
-                              width={book.Width}
-                              color={htmlColors.random()}
-                              key={k}
-                              className={"Book"}
-                            />
+                            <Fragment key={k}>
+                              <Book
+                                height={book.Depth}
+                                width={book.Width}
+                                color={htmlColors.random()}
+                                className={"Book"}
+                                data-tip={`${book.Title}`}
+                                data-for={`${book.Title}-tooltip`}
+                              />
+                              <ReactTooltip
+                                id={`${book.Title}-tooltip`}
+                                place='top'
+                                type='dark'
+                                effect='float'
+                              />
+                            </Fragment>
                           );
                         })}
                       </Row>
@@ -299,13 +339,22 @@ export default class App extends Component {
                       <Row className={"Row"}>
                         {row.map((book, k) => {
                           return (
-                            <Book
-                              height={book.Depth}
-                              width={book.Width}
-                              color={htmlColors.random()}
-                              key={k}
-                              className={"Book"}
-                            />
+                            <Fragment key={k}>
+                              <Book
+                                height={book.Depth}
+                                width={book.Width}
+                                color={htmlColors.random()}
+                                className={"Book"}
+                                data-tip={`${book.Title}`}
+                                data-for={`${book.Title}-tooltip`}
+                              />
+                              <ReactTooltip
+                                id={`${book.Title}-tooltip`}
+                                place='top'
+                                type='dark'
+                                effect='float'
+                              />
+                            </Fragment>
                           );
                         })}
                       </Row>
@@ -313,8 +362,9 @@ export default class App extends Component {
                   )
                 )}
               </Box>
-            ))
-          : null}
+            ))}
+          </Fragment>
+        ) : null}
       </AppWrapper>
     );
   }
