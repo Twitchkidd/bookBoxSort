@@ -8,6 +8,8 @@ import { storageAvailable } from "./utils/storageAvailable";
 
 const eigengrau = "#16161d";
 
+let sortIterator = 0;
+
 const AppWrapper = styled.div`
   height: 100%;
   min-height: 100vh;
@@ -45,8 +47,8 @@ const Row = styled.div`
   height: 100%;
   width: 100%;
   display: flex;
-  flex-direction: ${props => (props.left ? `row-reverse` : `row`)};
-  align-items: ${props => (props.left ? `flex-start` : `flex-end`)};
+  flex-direction: ${props => (props.left ? `row` : `row-reverse`)};
+  align-items: ${props => (props.left ? `flex-end` : `flex-start`)};
 `;
 
 const Book = styled.div.attrs(props => ({
@@ -54,6 +56,7 @@ const Book = styled.div.attrs(props => ({
 }))`
   height: ${props => `${props.height * 10}px`};
   width: ${props => `${props.width * 10}px`};
+  z-index: 99;
 `;
 
 export default class App extends Component {
@@ -112,6 +115,7 @@ export default class App extends Component {
       const bookBookReducer = (accumulator, currentBook) =>
         accumulator + currentBook.Width;
       const bookBoxReducer = (accumulator, currentBook, l) => {
+        // console.log(l);
         let nextAccumulator = [...accumulator];
         let sorted = false;
         let currentBox = 0;
@@ -127,6 +131,8 @@ export default class App extends Component {
         }
         init();
         while (!sorted) {
+          // console.log(sortIterator);
+          sortIterator++;
           function setNextBox() {
             const currentBoxNumbers = nextAccumulator.map(
               boxWithBooks => boxWithBooks.BoxNumber
@@ -161,6 +167,11 @@ export default class App extends Component {
           let affectedBooks = [];
           if (workingRow.length === 1) {
             affectedBooks = workingRow;
+          } else if (
+            workingRow.indexOf(currentBook) ===
+            workingRow.length - 1
+          ) {
+            affectedBooks = [currentBook];
           } else {
             affectedBooks = workingRow.filter(
               (book, i) => i >= workingRow.indexOf(currentBook)
@@ -234,6 +245,17 @@ export default class App extends Component {
               .concat(currentBook)
               .sort((bookA, bookB) => cmp(bookA.Depth, bookB.Depth));
             nextAccumulator[currentBox].rows[currentRow] = nextRow;
+            if (
+              currentBook.Title === "On The Pulse Of Morning (1)" ||
+              currentBook.Title === "The Scented Garden" ||
+              currentBook.Title === "The Prince and the Pauper"
+            ) {
+              console.log(currentBook.Title);
+              console.log("overlaps");
+              console.log(overlaps);
+              console.log("conflicts");
+              console.log(conflicts);
+            }
           }
           function checkBook() {
             const nextAction = checkHeight()
@@ -311,7 +333,7 @@ export default class App extends Component {
                 {box.rows.map((row, j) =>
                   j ? (
                     <RowWrapper key={j} className={"RowWrapper"}>
-                      <Row left={true} className={"Row"}>
+                      <Row className={"Row"}>
                         {row.map((book, k) => {
                           return (
                             <Fragment key={k}>
@@ -336,7 +358,7 @@ export default class App extends Component {
                     </RowWrapper>
                   ) : (
                     <RowWrapper key={j} className={"RowWrapper"}>
-                      <Row className={"Row"}>
+                      <Row left={true} className={"Row"}>
                         {row.map((book, k) => {
                           return (
                             <Fragment key={k}>
