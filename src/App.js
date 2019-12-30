@@ -1,7 +1,8 @@
+/* eslint-disable no-loop-func */
 import React, { Component, Fragment } from "react";
 import styled from "styled-components";
 import Global from "./Global";
-import HTMLComment from './components/HTMLComment';
+import HTMLComment from "./components/HTMLComment";
 import ReactTooltip from "react-tooltip";
 import { boxes, catalog } from "./data";
 import htmlColors from "html-colors";
@@ -13,7 +14,15 @@ const AppWrapper = styled.div`
   height: 100%;
   min-height: 100vh;
   width: 100vw;
-  background-image: linear-gradient(to right, #C1357E 0%, #C1357E 40%, #675997 40%, #675997 60%, #0655A9 60%, #0655A9 100%);
+  background-image: linear-gradient(
+    to right,
+    #c1357e 0%,
+    #c1357e 40%,
+    #675997 40%,
+    #675997 60%,
+    #0655a9 60%,
+    #0655a9 100%
+  );
   padding: 20px;
   display: flex;
   flex-direction: row;
@@ -271,8 +280,6 @@ export default class App extends Component {
       };
       const boxesWithBooks = sortedBooks.reduce(bookBoxReducer, []);
       const totalBoxes = boxesWithBooks.length;
-      const booksBooksReducer = (accumulator, currentBooks) =>
-        (accumulator + currentBooks).flat();
       let booksInBoxes = [];
       boxesWithBooks.forEach(box => {
         box.rows.forEach(row => {
@@ -308,6 +315,7 @@ export default class App extends Component {
     }
   }
   render() {
+    // eslint-disable-next-line no-unused-vars
     const { boxesWithBooks, totalBoxes } = this.state;
     return (
       <AppWrapper className={"bi"}>
